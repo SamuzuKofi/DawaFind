@@ -1,0 +1,1 @@
+// AdminRepository — abstract interface

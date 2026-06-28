@@ -1,0 +1,1 @@
+// MedicineRepository — abstract interface

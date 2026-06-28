@@ -1,0 +1,1 @@
+// InventoryRepository — abstract interface

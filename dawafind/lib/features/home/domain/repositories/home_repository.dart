@@ -1,0 +1,1 @@
+// HomeRepository — abstract interface
