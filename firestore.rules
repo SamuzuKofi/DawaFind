@@ -1,0 +1,136 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helpers ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isStaff() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/pharmacyStaff/$(request.auth.uid));
+    }
+
+    function staffPharmacyId() {
+      return get(/databases/$(database)/documents/pharmacyStaff/$(request.auth.uid))
+        .data.pharmacyId;
+    }
+
+    function isStaffOf(pharmacyId) {
+      return isStaff() && staffPharmacyId() == pharmacyId;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ---------- Medicines ----------
+    // Public catalogue. Readable by everyone, including signed-out users,
+    // because medicine search is available without an account.
+    // Any pharmacy staff member may add or correct an entry, since adding a
+    // stock item can create a catalogue entry that does not yet exist.
+
+    match /medicines/{medicineId} {
+      allow read: if true;
+      allow create, update: if isStaff()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.nameLower == request.resource.data.name.lower();
+      allow delete: if false;
+    }
+
+    // ---------- Pharmacies ----------
+    // Publicly readable: a pharmacy's listing exists to be found.
+    // Only its own staff may edit its details. The one exception is the pair
+    // of rating aggregates, which any signed-in user may update when they
+    // submit a rating — the rule restricts the write to those two fields only.
+
+    match /pharmacies/{pharmacyId} {
+      allow read: if true;
+
+      allow create: if signedIn();
+
+      allow update: if isStaffOf(pharmacyId)
+        || (signedIn()
+            && changedKeys().hasOnly(['averageRating', 'ratingCount'])
+            && request.resource.data.averageRating >= 0
+            && request.resource.data.averageRating <= 5
+            && request.resource.data.ratingCount >= 0);
+
+      allow delete: if false;
+
+      // ---------- Ratings (subcollection) ----------
+      // Document ID is the rater's uid, which enforces one rating per user
+      // per pharmacy at the database level rather than in application code.
+
+      match /ratings/{userId} {
+        allow read: if true;
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.score is number
+          && request.resource.data.score >= 1
+          && request.resource.data.score <= 5;
+        allow delete: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // ---------- Stock ----------
+    // Publicly readable so that search results and price comparison work
+    // without an account. Writable only by staff of the owning pharmacy.
+
+    match /stock/{stockId} {
+      allow read: if true;
+
+      allow create: if isStaffOf(request.resource.data.pharmacyId)
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity >= 0
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0;
+
+      allow update: if isStaffOf(resource.data.pharmacyId)
+        && isStaffOf(request.resource.data.pharmacyId)
+        && request.resource.data.quantity >= 0
+        && request.resource.data.price >= 0;
+
+      allow delete: if isStaffOf(resource.data.pharmacyId);
+    }
+
+    // ---------- Pharmacy staff ----------
+    // Private to the staff member. Nothing in the patient app reads this,
+    // and no staff member needs to see another's account record.
+    // pharmacyId is immutable after creation so a staff account cannot
+    // reassign itself to another pharmacy and gain write access to its stock.
+
+    macyStaff/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.pharmacyId == resource.data.pharmacyId;
+      allow deletmatch /phare: if false;
+    }
+
+    // ---------- Users ----------
+    // Fully private. The account document and every subcollection beneath it
+    // (saved pharmacies, search history) are readable and writable only by
+    // the account owner.
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+
+      match /{document=**} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // ---------- Default deny ----------
+    // Any collection not matched above is closed.
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
