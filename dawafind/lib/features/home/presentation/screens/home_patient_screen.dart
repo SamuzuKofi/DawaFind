@@ -51,7 +51,7 @@ class HomePatientScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Good morning 👋',
+          const Text('Good morning,',
               style: TextStyle(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 4),
           const Text('What medicine are you looking for?',
