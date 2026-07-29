@@ -17,8 +17,10 @@ class SavedPharmaciesScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         backgroundColor: AppColors.primaryGreen,
-        title: const Text('Saved Pharmacies',
-            style: TextStyle(color: AppColors.white)),
+        title: const Text(
+          'Saved Pharmacies',
+          style: TextStyle(color: AppColors.white),
+        ),
         iconTheme: const IconThemeData(color: AppColors.white),
         elevation: 0,
       ),
@@ -30,27 +32,36 @@ class SavedPharmaciesScreen extends StatelessWidget {
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12),
               leading: const CircleAvatar(
                 backgroundColor: AppColors.lightGreen,
-                child: Icon(Icons.local_pharmacy,
-                    color: AppColors.primaryGreen),
+                child: Icon(
+                  Icons.local_pharmacy,
+                  color: AppColors.primaryGreen,
+                ),
               ),
-              title: Text(p['name'] as String,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkText)),
-              subtitle: Text(p['distance'] as String,
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColors.greyText)),
+              title: Text(
+                p['name'] as String,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkText,
+                ),
+              ),
+              subtitle: Text(
+                p['distance'] as String,
+                style: const TextStyle(fontSize: 13, color: AppColors.greyText),
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.lightGreen,
                       borderRadius: BorderRadius.circular(8),
@@ -58,19 +69,19 @@ class SavedPharmaciesScreen extends StatelessWidget {
                     child: Text(
                       (p['open'] as bool) ? 'Open' : 'Closed',
                       style: TextStyle(
-                          fontSize: 11,
-                          color: (p['open'] as bool)
-                              ? AppColors.primaryGreen
-                              : AppColors.error),
+                        fontSize: 11,
+                        color: (p['open'] as bool)
+                            ? AppColors.primaryGreen
+                            : AppColors.error,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right,
-                      color: AppColors.greyText),
+                  const Icon(Icons.chevron_right, color: AppColors.greyText),
                 ],
               ),
-              onTap: () => Navigator.pushNamed(
-                  context, AppRoutes.pharmacyDetail),
+              onTap: () =>
+                  Navigator.pushNamed(context, AppRoutes.pharmacyDetail),
             ),
           );
         },

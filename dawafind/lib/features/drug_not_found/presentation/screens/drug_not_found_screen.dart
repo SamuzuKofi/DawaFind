@@ -20,14 +20,20 @@ class DrugNotFoundScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.medication_outlined,
-                size: 80, color: AppColors.inactiveGrey),
+            const Icon(
+              Icons.medication_outlined,
+              size: 80,
+              color: AppColors.inactiveGrey,
+            ),
             const SizedBox(height: 24),
-            Text(AppStrings.medicineNotFound,
-                style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.darkText)),
+            Text(
+              AppStrings.medicineNotFound,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkText,
+              ),
+            ),
             const SizedBox(height: 12),
             const Text(
               'No pharmacy near you currently has this medicine. Try searching for an alternative or check back later.',
@@ -42,15 +48,18 @@ class DrugNotFoundScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGreen,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28)),
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.search),
-                child: Text(AppStrings.searchAlternatives,
-                    style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold)),
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.search),
+                child: Text(
+                  AppStrings.searchAlternatives,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -61,14 +70,18 @@ class DrugNotFoundScreen extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primaryGreen),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28)),
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
-                onPressed: () =>
-                    Navigator.pushNamedAndRemoveUntil(
-                        context, AppRoutes.homePatient, (_) => false),
-                child: const Text('Go Home',
-                    style: TextStyle(color: AppColors.primaryGreen,
-                        fontSize: 16)),
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.homePatient,
+                  (_) => false,
+                ),
+                child: const Text(
+                  'Go Home',
+                  style: TextStyle(color: AppColors.primaryGreen, fontSize: 16),
+                ),
               ),
             ),
           ],

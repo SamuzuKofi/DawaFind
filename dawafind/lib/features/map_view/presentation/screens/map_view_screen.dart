@@ -9,8 +9,10 @@ class MapViewScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primaryGreen,
-        title: const Text('Nearby Pharmacies',
-            style: TextStyle(color: AppColors.white)),
+        title: const Text(
+          'Nearby Pharmacies',
+          style: TextStyle(color: AppColors.white),
+        ),
         iconTheme: const IconThemeData(color: AppColors.white),
         elevation: 0,
       ),
@@ -24,15 +26,19 @@ class MapViewScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.map, size: 80, color: AppColors.primaryGreen),
                   SizedBox(height: 12),
-                  Text('Map View',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.darkText)),
+                  Text(
+                    'Map View',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkText,
+                    ),
+                  ),
                   SizedBox(height: 4),
-                  Text('Google Maps integration goes here',
-                      style: TextStyle(
-                          color: AppColors.greyText, fontSize: 13)),
+                  Text(
+                    'Google Maps integration goes here',
+                    style: TextStyle(color: AppColors.greyText, fontSize: 13),
+                  ),
                 ],
               ),
             ),
@@ -43,18 +49,22 @@ class MapViewScreen extends StatelessWidget {
             right: 16,
             child: Card(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: const ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.lightGreen,
-                  child: Icon(Icons.local_pharmacy,
-                      color: AppColors.primaryGreen),
+                  child: Icon(
+                    Icons.local_pharmacy,
+                    color: AppColors.primaryGreen,
+                  ),
                 ),
-                title: Text('Dawa Pharmacy',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  'Dawa Pharmacy',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text('0.8 km away · Open now'),
-                trailing: Icon(Icons.directions,
-                    color: AppColors.primaryGreen),
+                trailing: Icon(Icons.directions, color: AppColors.primaryGreen),
               ),
             ),
           ),
