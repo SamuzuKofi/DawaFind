@@ -47,4 +47,4 @@ class AppStrings {
   static const String english = 'English';
   static const String french = 'Français';
   static const String kirundi = 'Ikirundi';
-}// All user-facing string literals (labels, messages, placeholders)
+} // All user-facing string literals (labels, messages, placeholders)
