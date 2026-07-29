@@ -16,11 +16,5 @@ class AppRoutes {
   static const String drugNotFound = '/drug-not-found';
   static const String profile = '/profile';
   static const String savedPharmacies = '/saved-pharmacies';
-  static const String pharmacyDetail = '/pharmacy-detail';
-static const String mapView = '/map-view';
-static const String drugNotFound = '/drug-not-found';
-static const String profile = '/profile';
-static const String savedPharmacies = '/saved-pharmacies';
-static const String inventory = '/inventory';
-static const String homePharmacist = '/home-pharmacist';
-}// Named route constants and route generation
+  static const String inventory = '/inventory';
+}
