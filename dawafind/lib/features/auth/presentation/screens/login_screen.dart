@@ -4,7 +4,6 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/services/preferences_service.dart';
-import '../../../../core/utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
