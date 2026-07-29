@@ -7,6 +7,9 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/search/presentation/bloc/search_bloc.dart';
 import 'features/inventory/presentation/bloc/inventory_bloc.dart';
 import 'features/admin/presentation/bloc/admin_bloc.dart';
+import 'features/auth/presentation/screens/splash_screen.dart';
+import 'features/auth/presentation/screens/onboarding_1_screen.dart';
+import 'features/auth/presentation/screens/onboarding_2_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
 import 'features/home/presentation/screens/home_patient_screen.dart';
@@ -14,6 +17,11 @@ import 'features/home/presentation/screens/home_pharmacist_screen.dart';
 import 'features/search/presentation/screens/medicine_search_screen.dart';
 import 'features/inventory/presentation/screens/inventory_screen.dart';
 import 'features/admin/presentation/screens/admin_screen.dart';
+import 'features/drug_not_found/presentation/screens/drug_not_found_screen.dart';
+import 'features/map_view/presentation/screens/map_view_screen.dart';
+import 'features/pharmacy_detail/presentation/screens/pharmacy_detail_screen.dart';
+import 'features/profile/presentation/screens/profile_screen.dart';
+import 'features/saved_pharmacies/presentation/screens/saved_pharmacies_screen.dart';
 
 class DawaFindApp extends StatelessWidget {
   const DawaFindApp({super.key});
@@ -21,7 +29,6 @@ class DawaFindApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      // AuthBloc is provided here so it is available throughout the app.
       providers: [
         BlocProvider(create: (_) => AuthBloc()),
       ],
@@ -29,7 +36,7 @@ class DawaFindApp extends StatelessWidget {
         title: 'DawaFind',
         debugShowCheckedModeBanner: false,
         theme: _theme(),
-        initialRoute: AppRoutes.login,
+        initialRoute: AppRoutes.splash,
         onGenerateRoute: _generateRoute,
       ),
     );
@@ -45,6 +52,15 @@ class DawaFindApp extends StatelessWidget {
 
   static Route<dynamic> _generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case AppRoutes.splash:
+        return _page(const SplashScreen());
+
+      case AppRoutes.onboarding1:
+        return _page(const Onboarding1Screen());
+
+      case AppRoutes.onboarding2:
+        return _page(const Onboarding2Screen());
+
       case AppRoutes.login:
         return _page(const LoginScreen());
 
@@ -58,7 +74,6 @@ class DawaFindApp extends StatelessWidget {
         return _page(const HomePharmacistScreen());
 
       case AppRoutes.search:
-        // SearchBloc is provided here so it is scoped to this route only.
         return _page(
           BlocProvider(
             create: (_) => SearchBloc(),
@@ -82,8 +97,23 @@ class DawaFindApp extends StatelessWidget {
           ),
         );
 
+      case AppRoutes.pharmacyDetail:
+        return _page(const PharmacyDetailScreen());
+
+      case AppRoutes.mapView:
+        return _page(const MapViewScreen());
+
+      case AppRoutes.drugNotFound:
+        return _page(const DrugNotFoundScreen());
+
+      case AppRoutes.profile:
+        return _page(const ProfileScreen());
+
+      case AppRoutes.savedPharmacies:
+        return _page(const SavedPharmaciesScreen());
+
       default:
-        return _page(const LoginScreen());
+        return _page(const SplashScreen());
     }
   }
 
