@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "745425719035",
+    "project_id": "dawafind",
+    "storage_bucket": "dawafind.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:745425719035:android:25fc054f048be630e9ea5e",
+        "android_client_info": {
+          "package_name": "com.example.dawafind"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "745425719035-18avg59donsffqnvdaq86ubq0qq0u14f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABfFH1kRTNYEukXNvu6pWt2hYYVwXVPzw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "745425719035-18avg59donsffqnvdaq86ubq0qq0u14f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
