@@ -3,6 +3,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/services/preferences_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,15 +39,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.primaryGreen,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add,
-                    color: AppColors.white, size: 28),
+                child: const Icon(Icons.add, color: AppColors.white, size: 28),
               ),
               const SizedBox(height: 24),
-              Text(AppStrings.welcomeBack,
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkText)),
+              Text(
+                AppStrings.welcomeBack,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkText,
+                ),
+              ),
               const SizedBox(height: 8),
               const Text(
                 'Log in to access your saved pharmacies and searches',
@@ -65,20 +68,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscure: _obscurePassword,
                 validator: Validators.password,
                 suffix: IconButton(
-                  icon: Icon(_obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () => setState(
-                      () => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {},
-                  child: Text(AppStrings.forgotPassword,
-                      style: const TextStyle(
-                          color: AppColors.primaryGreen, fontSize: 13)),
+                  child: Text(
+                    AppStrings.forgotPassword,
+                    style: const TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -89,18 +98,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28)),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
+                      await PreferencesService.saveUserType('patient');
+                      if (!context.mounted) return;
                       Navigator.pushNamed(context, AppRoutes.homePatient);
                     }
                   },
-                  child: Text(AppStrings.logInAsPatient,
-                      style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
+                  child: Text(
+                    AppStrings.logInAsPatient,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -110,33 +125,44 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(
-                        color: AppColors.primaryGreen, width: 2),
+                      color: AppColors.primaryGreen,
+                      width: 2,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28)),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      Navigator.pushNamed(
-                          context, AppRoutes.homePharmacist);
+                      await PreferencesService.saveUserType('pharmacist');
+                      if (!context.mounted) return;
+                      Navigator.pushNamed(context, AppRoutes.homePharmacist);
                     }
                   },
-                  child: Text(AppStrings.logInAsPharmacist,
-                      style: const TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
+                  child: Text(
+                    AppStrings.logInAsPharmacist,
+                    style: const TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Row(children: [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('or',
-                      style: TextStyle(color: AppColors.greyText)),
-                ),
-                Expanded(child: Divider()),
-              ]),
+              const Row(
+                children: [
+                  Expanded(child: Divider()),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'or',
+                      style: TextStyle(color: AppColors.greyText),
+                    ),
+                  ),
+                  Expanded(child: Divider()),
+                ],
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -145,21 +171,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.lightGreyBorder),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28)),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
                   ),
                   onPressed: () {},
-                  icon: const Icon(Icons.g_mobiledata,
-                      color: AppColors.primaryGreen, size: 28),
-                  label: Text(AppStrings.continueWithGoogle,
-                      style: const TextStyle(color: AppColors.darkText)),
+                  icon: const Icon(
+                    Icons.g_mobiledata,
+                    color: AppColors.primaryGreen,
+                    size: 28,
+                  ),
+                  label: Text(
+                    AppStrings.continueWithGoogle,
+                    style: const TextStyle(color: AppColors.darkText),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
               TextButton(
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.signup),
-                child: const Text("Don't have an account? Sign Up",
-                    style: TextStyle(color: AppColors.primaryGreen)),
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
+                child: const Text(
+                  "Don't have an account? Sign Up",
+                  style: TextStyle(color: AppColors.primaryGreen),
+                ),
               ),
               const SizedBox(height: 24),
             ],
@@ -175,22 +208,20 @@ class _LoginScreenState extends State<LoginScreen> {
     required String? Function(String?) validator,
     bool obscure = false,
     Widget? suffix,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: TextFormField(
-          obscureText: obscure,
-          validator: validator,
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon, size: 20),
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.lightGreyBorder),
-            ),
-          ),
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      obscureText: obscure,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.lightGreyBorder),
         ),
-      );
+      ),
+    ),
+  );
 }
