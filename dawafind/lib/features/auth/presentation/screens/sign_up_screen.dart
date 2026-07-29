@@ -31,35 +31,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(AppStrings.createAccount,
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkText)),
+              Text(
+                AppStrings.createAccount,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkText,
+                ),
+              ),
               const SizedBox(height: 24),
-              _field(label: AppStrings.fullName,
-                  icon: Icons.person_outline,
-                  validator: Validators.required),
-              _field(label: AppStrings.phoneNumber,
-                  icon: Icons.phone_outlined,
-                  validator: Validators.phone),
+              _field(
+                label: AppStrings.fullName,
+                icon: Icons.person_outline,
+                validator: Validators.required,
+              ),
+              _field(
+                label: AppStrings.phoneNumber,
+                icon: Icons.phone_outlined,
+                validator: Validators.phone,
+              ),
               _field(
                 label: AppStrings.password,
                 icon: Icons.lock_outline,
                 obscure: _obscurePassword,
                 validator: Validators.password,
                 suffix: IconButton(
-                  icon: Icon(_obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () => setState(
-                      () => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
-              _field(label: AppStrings.confirmPassword,
-                  icon: Icons.lock_outline,
-                  obscure: true,
-                  validator: Validators.required),
+              _field(
+                label: AppStrings.confirmPassword,
+                icon: Icons.lock_outline,
+                obscure: true,
+                validator: Validators.required,
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -68,18 +79,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28)),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
                   ),
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       Navigator.pushNamed(context, AppRoutes.homePatient);
                     }
                   },
-                  child: Text(AppStrings.createAccount,
-                      style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
+                  child: Text(
+                    AppStrings.createAccount,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -87,9 +102,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: TextButton(
                   onPressed: () =>
                       Navigator.pushNamed(context, AppRoutes.login),
-                  child: const Text('Already have an account? Log In',
-                      style:
-                          TextStyle(color: AppColors.primaryGreen)),
+                  child: const Text(
+                    'Already have an account? Log In',
+                    style: TextStyle(color: AppColors.primaryGreen),
+                  ),
                 ),
               ),
             ],
@@ -105,22 +121,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     required String? Function(String?) validator,
     bool obscure = false,
     Widget? suffix,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: TextFormField(
-          obscureText: obscure,
-          validator: validator,
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon, size: 20),
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.lightGreyBorder),
-            ),
-          ),
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      obscureText: obscure,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.lightGreyBorder),
         ),
-      );
+      ),
+    ),
+  );
 }
