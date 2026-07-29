@@ -6,8 +6,8 @@ class AdminInitial extends AdminState {}
 
 class AdminLoading extends AdminState {}
 
-class AdminDashboardLoaded extends AdminState {
-  AdminDashboardLoaded({required this.pendingApprovals});
+class AdminDashboardReady extends AdminState {
+  AdminDashboardReady({required this.pendingApprovals});
   final List<dynamic> pendingApprovals;
 }
 
