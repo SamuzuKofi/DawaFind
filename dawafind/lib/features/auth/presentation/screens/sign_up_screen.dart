@@ -3,6 +3,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -13,6 +15,11 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
@@ -43,16 +50,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _field(
                 label: AppStrings.fullName,
                 icon: Icons.person_outline,
+                controller: _nameController,
                 validator: Validators.required,
+              ),
+              _field(
+                label: 'Email',
+                icon: Icons.email_outlined,
+                controller: _emailController,
+                validator: Validators.email,
               ),
               _field(
                 label: AppStrings.phoneNumber,
                 icon: Icons.phone_outlined,
+                controller: _phoneController,
                 validator: Validators.phone,
               ),
               _field(
                 label: AppStrings.password,
                 icon: Icons.lock_outline,
+                controller: _passwordController,
                 obscure: _obscurePassword,
                 validator: Validators.password,
                 suffix: IconButton(
@@ -68,8 +84,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _field(
                 label: AppStrings.confirmPassword,
                 icon: Icons.lock_outline,
+                controller: _confirmPasswordController,
                 obscure: true,
-                validator: Validators.required,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your password';
+                  }
+                  if (value != _passwordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -82,9 +107,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      Navigator.pushNamed(context, AppRoutes.homePatient);
+                      try {
+                        await AuthService().signUp(
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text,
+                          fullName: _nameController.text.trim(),
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Verification email sent — check your inbox',
+                            ),
+                          ),
+                        );
+                        Navigator.pushReplacementNamed(
+                          context,
+                          AppRoutes.login,
+                        );
+                      } on FirebaseAuthException catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(e.message ?? 'Sign up failed'),
+                          ),
+                        );
+                      }
                     }
                   },
                   child: Text(
@@ -100,8 +150,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(height: 16),
               Center(
                 child: TextButton(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, AppRoutes.login),
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, AppRoutes.login);
+                  },
                   child: const Text(
                     'Already have an account? Log In',
                     style: TextStyle(color: AppColors.primaryGreen),
@@ -119,11 +170,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     required String label,
     required IconData icon,
     required String? Function(String?) validator,
+    TextEditingController? controller,
     bool obscure = false,
     Widget? suffix,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
     child: TextFormField(
+      controller: controller,
       obscureText: obscure,
       validator: validator,
       decoration: InputDecoration(
