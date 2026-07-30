@@ -1,0 +1,13 @@
+{
+  "name": "dawafind-seed-firestore",
+  "private": true,
+  "version": "1.0.0",
+  "description": "One-off script to seed the real dawafind Firestore project with demo data matching the ERD. Not part of the Flutter app.",
+  "main": "seed.js",
+  "scripts": {
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.2.0"
+  }
+}
