@@ -77,6 +77,20 @@ class AuthRemoteDataSource {
   }
 
   Future<UserEntity> _loadProfile(String uid) async {
+    final adminDoc = await _firestore
+        .collection(FirestorePaths.admins)
+        .doc(uid)
+        .get();
+    if (adminDoc.exists) {
+      final admin = UserModel.fromFirestore(adminDoc);
+      return UserEntity(
+        uid: admin.uid,
+        fullName: admin.fullName,
+        email: admin.email,
+        role: 'admin',
+      );
+    }
+
     final staffDoc = await _firestore
         .collection(FirestorePaths.pharmacyStaff)
         .doc(uid)
