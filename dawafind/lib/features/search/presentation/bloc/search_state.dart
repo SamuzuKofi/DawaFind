@@ -8,7 +8,7 @@ class SearchLoading extends SearchState {}
 
 class SearchSuccess extends SearchState {
   SearchSuccess({required this.results});
-  final List<dynamic> results;
+  final List<MedicineSearchResultEntity> results;
 }
 
 class SearchEmpty extends SearchState {}
