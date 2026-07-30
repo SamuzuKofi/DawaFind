@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,14 +24,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
 
+  // Account type the user asked for. The backend decides the role it actually
+  // grants, so this is a request rather than a guarantee.
+  String _requestedRole = 'patient';
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.darkText),
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthBloc>().add(
+      AuthRegisterRequested(
+        fullName: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -157,12 +170,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     'Already have an account? Log In',
                     style: TextStyle(color: AppColors.primaryGreen),
                   ),
-                ),
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

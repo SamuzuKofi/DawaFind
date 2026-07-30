@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../bloc/search_bloc.dart';
 
 class MedicineSearchScreen extends StatefulWidget {
   const MedicineSearchScreen({super.key});
@@ -11,26 +13,12 @@ class MedicineSearchScreen extends StatefulWidget {
 
 class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
   final _controller = TextEditingController();
-  final _results = [
-    {
-      'drug': 'Amoxicillin 500mg',
-      'pharmacy': 'Dawa Pharmacy',
-      'price': 'RWF 2,300',
-      'available': true,
-    },
-    {
-      'drug': 'Amoxicillin 250mg',
-      'pharmacy': 'Health Plus Pharmacy',
-      'price': 'RWF 1,800',
-      'available': true,
-    },
-    {
-      'drug': 'Amoxicillin 125mg',
-      'pharmacy': 'City Pharma',
-      'price': 'RWF 1,500',
-      'available': false,
-    },
-  ];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,20 +36,60 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
             hintStyle: TextStyle(color: Colors.white60),
             border: InputBorder.none,
           ),
-          onChanged: (_) => setState(() {}),
+          onChanged: (query) {
+            if (query.trim().isEmpty) {
+              context.read<SearchBloc>().add(SearchCleared());
+            } else {
+              context
+                  .read<SearchBloc>()
+                  .add(SearchQueryChanged(query: query.trim()));
+            }
+          },
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.clear, color: AppColors.white),
-            onPressed: () => _controller.clear(),
+            onPressed: () {
+              _controller.clear();
+              context.read<SearchBloc>().add(SearchCleared());
+            },
           ),
         ],
       ),
-      body: _controller.text.isEmpty ? _emptyState() : _resultsList(context),
+      body: BlocBuilder<SearchBloc, SearchState>(
+        // Cross-fades between the prompt, spinner and results as the user types.
+        builder: (context, state) => AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _bodyFor(context, state),
+        ),
+      ),
     );
   }
 
+  Widget _bodyFor(BuildContext context, SearchState state) {
+    if (state is SearchLoading) {
+      return const Center(
+        key: ValueKey('loading'),
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      );
+    }
+    if (state is SearchSuccess) return _resultsList(context, state);
+    if (state is SearchEmpty) return _noResultsState();
+    if (state is SearchError) {
+      return Center(
+        key: const ValueKey('error'),
+        child: Text(
+          state.message,
+          style: const TextStyle(color: AppColors.error),
+        ),
+      );
+    }
+    // SearchInitial — nothing typed yet.
+    return _emptyState();
+  }
+
   Widget _emptyState() => const Center(
+    key: ValueKey('initial'),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -75,84 +103,111 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
     ),
   );
 
-  Widget _resultsList(BuildContext context) => ListView.builder(
-    padding: const EdgeInsets.all(16),
-    itemCount: _results.length + 1,
-    itemBuilder: (context, i) {
-      if (i == _results.length) {
-        return TextButton.icon(
-          onPressed: () => Navigator.pushNamed(context, AppRoutes.drugNotFound),
-          icon: const Icon(Icons.info_outline, color: AppColors.primaryGreen),
-          label: const Text(
-            "Can't find your medicine?",
-            style: TextStyle(color: AppColors.primaryGreen),
-          ),
-        );
-      }
-      final r = _results[i];
-      return Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(12),
-          leading: Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: AppColors.lightGreen,
-              shape: BoxShape.circle,
+  Widget _noResultsState() => const Center(
+    key: ValueKey('none'),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.search_off, size: 64, color: AppColors.inactiveGrey),
+        SizedBox(height: 12),
+        Text(
+          'No medicines found',
+          style: TextStyle(color: AppColors.greyText, fontSize: 15),
+        ),
+      ],
+    ),
+  );
+
+  Widget _resultsList(BuildContext context, SearchSuccess state) =>
+      ListView.builder(
+        key: const ValueKey('results'),
+        padding: const EdgeInsets.all(16),
+        itemCount: state.results.length + 1,
+        itemBuilder: (context, i) {
+          if (i == state.results.length) {
+            return TextButton.icon(
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.drugNotFound),
+              icon: const Icon(Icons.info_outline, color: AppColors.primaryGreen),
+              label: const Text(
+                "Can't find your medicine?",
+                style: TextStyle(color: AppColors.primaryGreen),
+              ),
+            );
+          }
+          final r = state.results[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.local_pharmacy,
-              color: AppColors.primaryGreen,
-            ),
-          ),
-          title: Text(
-            r['drug'] as String,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.darkText,
-            ),
-          ),
-          subtitle: Text(
-            r['pharmacy'] as String,
-            style: const TextStyle(fontSize: 13, color: AppColors.greyText),
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                r['price'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(12),
+              leading: Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: AppColors.lightGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.local_pharmacy,
                   color: AppColors.primaryGreen,
                 ),
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: (r['available'] as bool)
-                      ? AppColors.lightGreen
-                      : Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  (r['available'] as bool) ? 'In Stock' : 'Out of Stock',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: (r['available'] as bool)
-                        ? AppColors.primaryGreen
-                        : AppColors.error,
-                  ),
+              title: Text(
+                '${r.medicineName} ${r.dosage}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkText,
                 ),
               ),
-            ],
-          ),
-          onTap: () => Navigator.pushNamed(context, AppRoutes.pharmacyDetail),
-        ),
+              subtitle: Text(
+                r.pharmacyName,
+                style: const TextStyle(fontSize: 13, color: AppColors.greyText),
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'RWF ${r.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: r.inStock
+                          ? AppColors.lightGreen
+                          : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      r.inStock ? 'In Stock' : 'Out of Stock',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: r.inStock
+                            ? AppColors.primaryGreen
+                            : AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.pharmacyDetail,
+                arguments: r.pharmacyId,
+              ),
+            ),
+          );
+        },
       );
-    },
-  );
 }
