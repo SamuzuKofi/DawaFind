@@ -5,6 +5,7 @@ import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/services/preferences_service.dart';
 import '../../../../core/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +16,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
@@ -59,13 +62,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
               _field(
-                label: AppStrings.phoneNumber,
-                icon: Icons.phone_outlined,
-                validator: Validators.phone,
+                label: 'Email',
+                icon: Icons.email_outlined,
+                controller: _emailController,
+                validator: Validators.email,
               ),
               _field(
                 label: AppStrings.password,
                 icon: Icons.lock_outline,
+                controller: _passwordController,
                 obscure: _obscurePassword,
                 validator: Validators.password,
                 suffix: IconButton(
@@ -104,9 +109,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      await PreferencesService.saveUserType('patient');
-                      if (!context.mounted) return;
-                      Navigator.pushNamed(context, AppRoutes.homePatient);
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await AuthService().logIn(
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text,
+                        );
+                        await PreferencesService.saveUserType('patient');
+                        if (!mounted) return;
+                        navigator.pushReplacementNamed(AppRoutes.homePatient);
+                      } on FirebaseAuthException catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(e.message ?? 'Login failed')),
+                        );
+                      }
                     }
                   },
                   child: Text(
@@ -135,9 +153,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      await PreferencesService.saveUserType('pharmacist');
-                      if (!context.mounted) return;
-                      Navigator.pushNamed(context, AppRoutes.homePharmacist);
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await AuthService().logIn(
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text,
+                        );
+                        await PreferencesService.saveUserType('pharmacist');
+                        if (!mounted) return;
+                        navigator.pushReplacementNamed(
+                          AppRoutes.homePharmacist,
+                        );
+                      } on FirebaseAuthException catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(e.message ?? 'Login failed')),
+                        );
+                      }
                     }
                   },
                   child: Text(
@@ -176,16 +209,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
                     final authService = AuthService();
                     final userCredential = await authService.signInWithGoogle();
                     if (userCredential != null) {
-                      // User signed in successfully with Google
                       await PreferencesService.saveUserType('patient');
-                      if (!context.mounted) return;
-                      Navigator.pushNamed(context, AppRoutes.homePatient);
+                      if (!mounted) return;
+                      navigator.pushNamed(AppRoutes.homePatient);
                     } else {
-                      // User cancelled the Google sign-in
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Google sign-in cancelled'),
                         ),
@@ -205,9 +238,29 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
               TextButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  try {
+                    await AuthService().sendPasswordReset(
+                      _emailController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Password reset email sent'),
+                      ),
+                    );
+                  } on FirebaseAuthException catch (e) {
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(e.message ?? 'Password reset failed'),
+                      ),
+                    );
+                  }
+                },
                 child: const Text(
-                  "Don't have an account? Sign Up",
+                  'Forgot your password?',
                   style: TextStyle(color: AppColors.primaryGreen),
                 ),
               ),
@@ -223,11 +276,13 @@ class _LoginScreenState extends State<LoginScreen> {
     required String label,
     required IconData icon,
     required String? Function(String?) validator,
+    TextEditingController? controller,
     bool obscure = false,
     Widget? suffix,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
     child: TextFormField(
+      controller: controller,
       obscureText: obscure,
       validator: validator,
       decoration: InputDecoration(
