@@ -14,4 +14,14 @@ abstract class PharmacyRepository {
     double? userLatitude,
     double? userLongitude,
   });
+
+  /// The signed-in user's own rating for this pharmacy, if they've rated it.
+  Future<double?> getMyRating(String pharmacyId);
+
+  /// Creates or updates the signed-in user's rating and recomputes the
+  /// pharmacy's averageRating/ratingCount atomically.
+  Future<void> submitRating(String pharmacyId, double score);
+
+  /// Deletes the signed-in user's rating and recomputes the aggregate.
+  Future<void> removeRating(String pharmacyId);
 }

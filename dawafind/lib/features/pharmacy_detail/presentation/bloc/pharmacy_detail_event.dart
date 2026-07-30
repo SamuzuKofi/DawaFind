@@ -11,3 +11,14 @@ class PharmacyDetailSaveToggled extends PharmacyDetailEvent {
   PharmacyDetailSaveToggled({required this.pharmacyId});
   final String pharmacyId;
 }
+
+class PharmacyDetailRatingSubmitted extends PharmacyDetailEvent {
+  PharmacyDetailRatingSubmitted({required this.pharmacyId, required this.score});
+  final String pharmacyId;
+  final double score;
+}
+
+class PharmacyDetailRatingRemoved extends PharmacyDetailEvent {
+  PharmacyDetailRatingRemoved({required this.pharmacyId});
+  final String pharmacyId;
+}
