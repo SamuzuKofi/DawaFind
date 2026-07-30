@@ -7,6 +7,10 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/search/presentation/bloc/search_bloc.dart';
 import 'features/inventory/presentation/bloc/inventory_bloc.dart';
 import 'features/admin/presentation/bloc/admin_bloc.dart';
+import 'features/home/presentation/bloc/home_bloc.dart';
+import 'features/pharmacy_detail/presentation/bloc/pharmacy_detail_bloc.dart';
+import 'features/profile/presentation/bloc/profile_bloc.dart';
+import 'features/saved_pharmacies/presentation/bloc/saved_pharmacies_bloc.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 import 'features/auth/presentation/screens/onboarding_1_screen.dart';
 import 'features/auth/presentation/screens/onboarding_2_screen.dart';
@@ -68,10 +72,20 @@ class DawaFindApp extends StatelessWidget {
         return _page(const SignUpScreen());
 
       case AppRoutes.homePatient:
-        return _page(const HomePatientScreen());
+        return _page(
+          BlocProvider(
+            create: (_) => HomeBloc(),
+            child: const HomePatientScreen(),
+          ),
+        );
 
       case AppRoutes.homePharmacist:
-        return _page(const HomePharmacistScreen());
+        return _page(
+          BlocProvider(
+            create: (_) => HomeBloc(),
+            child: const HomePharmacistScreen(),
+          ),
+        );
 
       case AppRoutes.search:
         return _page(
@@ -98,7 +112,12 @@ class DawaFindApp extends StatelessWidget {
         );
 
       case AppRoutes.pharmacyDetail:
-        return _page(const PharmacyDetailScreen());
+        return _page(
+          BlocProvider(
+            create: (_) => PharmacyDetailBloc(),
+            child: const PharmacyDetailScreen(),
+          ),
+        );
 
       case AppRoutes.mapView:
         return _page(const MapViewScreen());
@@ -107,10 +126,20 @@ class DawaFindApp extends StatelessWidget {
         return _page(const DrugNotFoundScreen());
 
       case AppRoutes.profile:
-        return _page(const ProfileScreen());
+        return _page(
+          BlocProvider(
+            create: (_) => ProfileBloc(),
+            child: const ProfileScreen(),
+          ),
+        );
 
       case AppRoutes.savedPharmacies:
-        return _page(const SavedPharmaciesScreen());
+        return _page(
+          BlocProvider(
+            create: (_) => SavedPharmaciesBloc(),
+            child: const SavedPharmaciesScreen(),
+          ),
+        );
 
       default:
         return _page(const SplashScreen());
