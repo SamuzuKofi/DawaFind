@@ -4,6 +4,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/services/preferences_service.dart';
+import '../../../../core/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -174,7 +175,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: () async {
+                    final authService = AuthService();
+                    final userCredential = await authService.signInWithGoogle();
+                    if (userCredential != null) {
+                      // User signed in successfully with Google
+                      await PreferencesService.saveUserType('patient');
+                      if (!context.mounted) return;
+                      Navigator.pushNamed(context, AppRoutes.homePatient);
+                    } else {
+                      // User cancelled the Google sign-in
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Google sign-in cancelled'),
+                        ),
+                      );
+                    }
+                  },
                   icon: const Icon(
                     Icons.g_mobiledata,
                     color: AppColors.primaryGreen,
