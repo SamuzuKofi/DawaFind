@@ -6,7 +6,20 @@ class InventoryLoaded extends InventoryEvent {}
 
 class InventoryItemAdded extends InventoryEvent {
   InventoryItemAdded({required this.item});
-  final dynamic item;
+  final InventoryItemDraft item;
+}
+
+class InventoryItemUpdated extends InventoryEvent {
+  InventoryItemUpdated({
+    required this.stockId,
+    required this.quantity,
+    required this.price,
+    required this.packSize,
+  });
+  final String stockId;
+  final int quantity;
+  final double price;
+  final String packSize;
 }
 
 class InventoryItemDeleted extends InventoryEvent {
