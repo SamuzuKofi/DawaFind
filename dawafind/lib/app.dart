@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'core/constants/app_colors.dart';
 import 'core/constants/app_routes.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/search/presentation/bloc/search_bloc.dart';
 import 'features/inventory/presentation/bloc/inventory_bloc.dart';
@@ -33,26 +34,22 @@ class DawaFindApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [
-        BlocProvider(create: (_) => AuthBloc()),
-      ],
-      child: MaterialApp(
-        title: 'DawaFind',
-        debugShowCheckedModeBanner: false,
-        theme: _theme(),
-        initialRoute: AppRoutes.splash,
-        onGenerateRoute: _generateRoute,
+      providers: [BlocProvider(create: (_) => AuthBloc())],
+      // Only MaterialApp rebuilds on a theme change, so the blocs above survive.
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeController.instance.mode,
+        builder: (context, themeMode, _) => MaterialApp(
+          title: 'DawaFind',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          initialRoute: AppRoutes.splash,
+          onGenerateRoute: _generateRoute,
+        ),
       ),
     );
   }
-
-  ThemeData _theme() => ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primaryGreen,
-          primary: AppColors.primaryGreen,
-        ),
-        useMaterial3: true,
-      );
 
   static Route<dynamic> _generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -105,10 +102,7 @@ class DawaFindApp extends StatelessWidget {
 
       case AppRoutes.admin:
         return _page(
-          BlocProvider(
-            create: (_) => AdminBloc(),
-            child: const AdminScreen(),
-          ),
+          BlocProvider(create: (_) => AdminBloc(), child: const AdminScreen()),
         );
 
       case AppRoutes.pharmacyDetail:

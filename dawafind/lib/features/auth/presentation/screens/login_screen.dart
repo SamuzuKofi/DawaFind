@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../core/utils/validators.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -18,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  // Tracks which role the user tapped so we can route correctly on success.
+  // Tracks which button was tapped so only that one shows a spinner.
   String? _pendingRole;
 
   @override
@@ -32,11 +33,24 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     _pendingRole = role;
     context.read<AuthBloc>().add(
-          AuthLoginRequested(
-            phone: _phoneController.text.trim(),
-            password: _passwordController.text,
-          ),
-        );
+      AuthLoginRequested(
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
+  }
+
+  /// Stores the granted role and marks the session active, so the splash
+  /// screen can skip the login form on the next launch.
+  Future<void> _onAuthenticated(BuildContext context, String role) async {
+    await PreferencesService.saveUserType(role);
+    await PreferencesService.setLoggedIn(true);
+    if (!context.mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      role == 'pharmacist' ? AppRoutes.homePharmacist : AppRoutes.homePatient,
+      (_) => false,
+    );
   }
 
   @override
@@ -44,15 +58,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          final route = state.role == 'pharmacist'
-              ? AppRoutes.homePharmacist
-              : AppRoutes.homePatient;
-          Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+          _onAuthenticated(context, state.role);
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
               backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -73,19 +85,27 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryGreen,
-                      shape: BoxShape.circle,
+                  // Shares a tag with the splash logo so the mark flies across.
+                  Hero(
+                    tag: 'app-logo',
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppColors.white,
+                        size: 28,
+                      ),
                     ),
-                    child: const Icon(Icons.add, color: AppColors.white, size: 28),
                   ),
                   const SizedBox(height: 24),
-                  Text(
+                  const Text(
                     AppStrings.welcomeBack,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkText,
@@ -124,9 +144,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {},
-                      child: Text(
+                      child: const Text(
                         AppStrings.forgotPassword,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.primaryGreen,
                           fontSize: 13,
                         ),
@@ -146,10 +166,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       onPressed: isLoading ? null : () => _submit('patient'),
                       child: isLoading && _pendingRole == 'patient'
-                          ? const CircularProgressIndicator(color: AppColors.white)
-                          : Text(
+                          ? const CircularProgressIndicator(
+                              color: AppColors.white,
+                            )
+                          : const Text(
                               AppStrings.logInAsPatient,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -174,10 +196,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: isLoading ? null : () => _submit('pharmacist'),
                       child: isLoading && _pendingRole == 'pharmacist'
                           ? const CircularProgressIndicator(
-                              color: AppColors.primaryGreen)
-                          : Text(
+                              color: AppColors.primaryGreen,
+                            )
+                          : const Text(
                               AppStrings.logInAsPharmacist,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.primaryGreen,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -205,7 +228,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 56,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.lightGreyBorder),
+                        side: const BorderSide(
+                          color: AppColors.lightGreyBorder,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -216,9 +241,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppColors.primaryGreen,
                         size: 28,
                       ),
-                      label: Text(
+                      label: const Text(
                         AppStrings.continueWithGoogle,
-                        style: const TextStyle(color: AppColors.darkText),
+                        style: TextStyle(color: AppColors.darkText),
                       ),
                     ),
                   ),
@@ -248,22 +273,21 @@ class _LoginScreenState extends State<LoginScreen> {
     required String? Function(String?) validator,
     bool obscure = false,
     Widget? suffix,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: TextFormField(
-          controller: controller,
-          obscureText: obscure,
-          validator: validator,
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon, size: 20),
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.lightGreyBorder),
-            ),
-          ),
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.lightGreyBorder),
         ),
-      );
+      ),
+    ),
+  );
 }
