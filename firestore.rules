@@ -104,13 +104,13 @@ service cloud.firestore {
     // pharmacyId is immutable after creation so a staff account cannot
     // reassign itself to another pharmacy and gain write access to its stock.
 
-    macyStaff/{uid} {
+    match /pharmacyStaff/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create: if signedIn() && request.auth.uid == uid;
       allow update: if signedIn()
         && request.auth.uid == uid
         && request.resource.data.pharmacyId == resource.data.pharmacyId;
-      allow deletmatch /phare: if false;
+      allow delete: if false;
     }
 
     // ---------- Users ----------
