@@ -8,7 +8,7 @@ class SavedPharmaciesLoading extends SavedPharmaciesState {}
 
 class SavedPharmaciesReady extends SavedPharmaciesState {
   SavedPharmaciesReady({required this.pharmacies});
-  final List<dynamic> pharmacies;
+  final List<PharmacySummaryEntity> pharmacies;
 }
 
 class SavedPharmaciesError extends SavedPharmaciesState {

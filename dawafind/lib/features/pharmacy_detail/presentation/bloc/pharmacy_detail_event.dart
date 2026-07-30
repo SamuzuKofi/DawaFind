@@ -6,3 +6,8 @@ class PharmacyDetailRequested extends PharmacyDetailEvent {
   PharmacyDetailRequested({required this.pharmacyId});
   final String pharmacyId;
 }
+
+class PharmacyDetailSaveToggled extends PharmacyDetailEvent {
+  PharmacyDetailSaveToggled({required this.pharmacyId});
+  final String pharmacyId;
+}
