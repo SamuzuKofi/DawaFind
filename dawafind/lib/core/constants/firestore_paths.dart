@@ -7,6 +7,7 @@ class FirestorePaths {
   static const String stock = 'stock';
   static const String pharmacyStaff = 'pharmacyStaff';
   static const String users = 'users';
+  static const String admins = 'admins'; // seeded manually, never self-serve
 
   // Subcollections
   static const String ratings = 'ratings'; // pharmacies/{id}/ratings

@@ -7,6 +7,7 @@ import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/models/medicine_model.dart';
 import '../../../../core/models/pharmacy_model.dart';
+import '../../../../core/models/rating_model.dart';
 import '../../../../core/models/saved_pharmacy_model.dart';
 import '../../../../core/models/stock_model.dart';
 import '../../../../core/utils/geo_utils.dart';
@@ -166,6 +167,106 @@ class PharmacyRemoteDataSource {
         )
         .toList();
   }
+
+  Future<double?> getMyRating(String pharmacyId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return null;
+    final doc = await _ratingDoc(pharmacyId, uid).get();
+    if (!doc.exists) return null;
+    return RatingModel.fromFirestore(doc).score;
+  }
+
+  Future<void> submitRating(String pharmacyId, double score) async {
+    if (score < 1 || score > 5) {
+      throw const AppException('Rating must be between 1 and 5.');
+    }
+    final uid = _requireUid();
+    final pharmacyRef = _firestore
+        .collection(FirestorePaths.pharmacies)
+        .doc(pharmacyId);
+    final ratingRef = _ratingDoc(pharmacyId, uid);
+
+    await _firestore.runTransaction((transaction) async {
+      final pharmacySnap = await transaction.get(pharmacyRef);
+      if (!pharmacySnap.exists) {
+        throw const AppException('This pharmacy could not be found.');
+      }
+      final ratingSnap = await transaction.get(ratingRef);
+
+      final currentCount =
+          (pharmacySnap.data()?['ratingCount'] as num?)?.toInt() ?? 0;
+      final currentAverage =
+          (pharmacySnap.data()?['averageRating'] as num?)?.toDouble() ?? 0;
+
+      final int newCount;
+      final double newAverage;
+      if (ratingSnap.exists) {
+        // Updating an existing rating: the count doesn't change, only the
+        // weighted sum shifts by (newScore - previousScore).
+        final previousScore =
+            (ratingSnap.data()?['score'] as num?)?.toDouble() ?? 0;
+        newCount = currentCount;
+        newAverage = newCount > 0
+            ? ((currentAverage * currentCount) - previousScore + score) /
+                  newCount
+            : score;
+      } else {
+        newCount = currentCount + 1;
+        newAverage = ((currentAverage * currentCount) + score) / newCount;
+      }
+
+      transaction.set(ratingRef, {
+        'userId': uid,
+        'score': score,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      transaction.update(pharmacyRef, {
+        'averageRating': newAverage,
+        'ratingCount': newCount,
+      });
+    });
+  }
+
+  Future<void> removeRating(String pharmacyId) async {
+    final uid = _requireUid();
+    final pharmacyRef = _firestore
+        .collection(FirestorePaths.pharmacies)
+        .doc(pharmacyId);
+    final ratingRef = _ratingDoc(pharmacyId, uid);
+
+    await _firestore.runTransaction((transaction) async {
+      final pharmacySnap = await transaction.get(pharmacyRef);
+      final ratingSnap = await transaction.get(ratingRef);
+      if (!ratingSnap.exists) return;
+
+      final currentCount =
+          (pharmacySnap.data()?['ratingCount'] as num?)?.toInt() ?? 0;
+      final currentAverage =
+          (pharmacySnap.data()?['averageRating'] as num?)?.toDouble() ?? 0;
+      final previousScore =
+          (ratingSnap.data()?['score'] as num?)?.toDouble() ?? 0;
+
+      final newCount = currentCount > 0 ? currentCount - 1 : 0;
+      final newAverage = newCount > 0
+          ? ((currentAverage * currentCount) - previousScore) / newCount
+          : 0.0;
+
+      transaction.delete(ratingRef);
+      transaction.update(pharmacyRef, {
+        'averageRating': newAverage,
+        'ratingCount': newCount,
+      });
+    });
+  }
+
+  DocumentReference<Map<String, dynamic>> _ratingDoc(
+    String pharmacyId,
+    String uid,
+  ) => _firestore
+      .collection(FirestorePaths.pharmacies)
+      .doc(pharmacyId)
+      .collection(FirestorePaths.ratings)
+      .doc(uid);
 
   DocumentReference<Map<String, dynamic>> _savedPharmacyDoc(
     String uid,

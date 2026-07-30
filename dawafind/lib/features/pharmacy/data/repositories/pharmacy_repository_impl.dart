@@ -62,4 +62,31 @@ class PharmacyRepositoryImpl implements PharmacyRepository {
       throw AppException(e.message ?? 'Could not load saved pharmacies.');
     }
   }
+
+  @override
+  Future<double?> getMyRating(String pharmacyId) async {
+    try {
+      return await _remoteDataSource.getMyRating(pharmacyId);
+    } on FirebaseException {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> submitRating(String pharmacyId, double score) async {
+    try {
+      await _remoteDataSource.submitRating(pharmacyId, score);
+    } on FirebaseException catch (e) {
+      throw AppException(e.message ?? 'Could not submit your rating.');
+    }
+  }
+
+  @override
+  Future<void> removeRating(String pharmacyId) async {
+    try {
+      await _remoteDataSource.removeRating(pharmacyId);
+    } on FirebaseException catch (e) {
+      throw AppException(e.message ?? 'Could not remove your rating.');
+    }
+  }
 }
