@@ -15,6 +15,8 @@ class PharmacyDetailBloc
       super(PharmacyDetailInitial()) {
     on<PharmacyDetailRequested>(_onRequested);
     on<PharmacyDetailSaveToggled>(_onSaveToggled);
+    on<PharmacyDetailRatingSubmitted>(_onRatingSubmitted);
+    on<PharmacyDetailRatingRemoved>(_onRatingRemoved);
   }
 
   final PharmacyRepository _pharmacyRepository;
@@ -24,17 +26,7 @@ class PharmacyDetailBloc
     Emitter<PharmacyDetailState> emit,
   ) async {
     emit(PharmacyDetailLoading());
-    try {
-      final pharmacy = await _pharmacyRepository.getPharmacyById(
-        event.pharmacyId,
-      );
-      final isSaved = await _pharmacyRepository.isPharmacySaved(
-        event.pharmacyId,
-      );
-      emit(PharmacyDetailReady(pharmacy: pharmacy, isSaved: isSaved));
-    } on AppException catch (e) {
-      emit(PharmacyDetailError(message: e.message));
-    }
+    await _load(event.pharmacyId, emit);
   }
 
   Future<void> _onSaveToggled(
@@ -50,7 +42,55 @@ class PharmacyDetailBloc
         await _pharmacyRepository.savePharmacy(event.pharmacyId);
       }
       emit(
-        PharmacyDetailReady(pharmacy: current.pharmacy, isSaved: !current.isSaved),
+        PharmacyDetailReady(
+          pharmacy: current.pharmacy,
+          isSaved: !current.isSaved,
+          myRating: current.myRating,
+        ),
+      );
+    } on AppException catch (e) {
+      emit(PharmacyDetailError(message: e.message));
+    }
+  }
+
+  Future<void> _onRatingSubmitted(
+    PharmacyDetailRatingSubmitted event,
+    Emitter<PharmacyDetailState> emit,
+  ) async {
+    try {
+      await _pharmacyRepository.submitRating(event.pharmacyId, event.score);
+      await _load(event.pharmacyId, emit);
+    } on AppException catch (e) {
+      emit(PharmacyDetailError(message: e.message));
+    }
+  }
+
+  Future<void> _onRatingRemoved(
+    PharmacyDetailRatingRemoved event,
+    Emitter<PharmacyDetailState> emit,
+  ) async {
+    try {
+      await _pharmacyRepository.removeRating(event.pharmacyId);
+      await _load(event.pharmacyId, emit);
+    } on AppException catch (e) {
+      emit(PharmacyDetailError(message: e.message));
+    }
+  }
+
+  // Shared by the initial load and by both rating mutations, since a
+  // rating changes the pharmacy's averageRating/ratingCount aggregate too
+  // — the whole detail view needs refreshing, not just the score.
+  Future<void> _load(String pharmacyId, Emitter<PharmacyDetailState> emit) async {
+    try {
+      final pharmacy = await _pharmacyRepository.getPharmacyById(pharmacyId);
+      final isSaved = await _pharmacyRepository.isPharmacySaved(pharmacyId);
+      final myRating = await _pharmacyRepository.getMyRating(pharmacyId);
+      emit(
+        PharmacyDetailReady(
+          pharmacy: pharmacy,
+          isSaved: isSaved,
+          myRating: myRating,
+        ),
       );
     } on AppException catch (e) {
       emit(PharmacyDetailError(message: e.message));
