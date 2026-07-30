@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../core/utils/validators.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -20,6 +21,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  // Account type the user asked for. The backend decides the role it actually
+  // grants, so this is a request rather than a guarantee.
+  String _requestedRole = 'patient';
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -31,12 +36,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
-          AuthRegisterRequested(
-            fullName: _nameController.text.trim(),
-            phone: _phoneController.text.trim(),
-            password: _passwordController.text,
+      AuthRegisterRequested(
+        fullName: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
+  }
+
+  /// Stores the role the backend granted so the splash screen can route
+  /// straight to the right home screen on every later launch.
+  Future<void> _onRegistered(BuildContext context, String grantedRole) async {
+    await PreferencesService.saveUserType(grantedRole);
+    await PreferencesService.setLoggedIn(true);
+    if (!context.mounted) return;
+
+    if (_requestedRole == 'pharmacist' && grantedRole != 'pharmacist') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Account created as a patient. Pharmacist accounts must be approved by an admin.',
           ),
-        );
+          backgroundColor: AppColors.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      grantedRole == 'pharmacist'
+          ? AppRoutes.homePharmacist
+          : AppRoutes.homePatient,
+      (_) => false,
+    );
   }
 
   @override
@@ -44,14 +78,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          // New accounts are always patients; navigate and clear the stack.
-          Navigator.pushNamedAndRemoveUntil(
-              context, AppRoutes.homePatient, (_) => false);
+          _onRegistered(context, state.role);
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
               backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -72,15 +105,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     AppStrings.createAccount,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkText,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'I am signing up as',
+                    style: TextStyle(fontSize: 13, color: AppColors.greyText),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'patient',
+                        label: Text('Patient'),
+                        icon: Icon(Icons.person_outline),
+                      ),
+                      ButtonSegment(
+                        value: 'pharmacist',
+                        label: Text('Pharmacist'),
+                        icon: Icon(Icons.local_pharmacy_outlined),
+                      ),
+                    ],
+                    selected: {_requestedRole},
+                    onSelectionChanged: (selection) =>
+                        setState(() => _requestedRole = selection.first),
+                  ),
+                  const SizedBox(height: 20),
                   _field(
                     label: AppStrings.fullName,
                     icon: Icons.person_outline,
@@ -135,10 +191,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       onPressed: isLoading ? null : _submit,
                       child: isLoading
                           ? const CircularProgressIndicator(
-                              color: AppColors.white)
-                          : Text(
+                              color: AppColors.white,
+                            )
+                          : const Text(
                               AppStrings.createAccount,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -157,6 +214,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -173,22 +231,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     TextEditingController? controller,
     bool obscure = false,
     Widget? suffix,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: TextFormField(
-          controller: controller,
-          obscureText: obscure,
-          validator: validator,
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon, size: 20),
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.lightGreyBorder),
-            ),
-          ),
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.lightGreyBorder),
         ),
-      );
+      ),
+    ),
+  );
 }

@@ -57,59 +57,70 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
         ],
       ),
       body: BlocBuilder<SearchBloc, SearchState>(
-        builder: (context, state) {
-          if (state is SearchLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen),
-            );
-          }
-          if (state is SearchSuccess) return _resultsList(context, state);
-          if (state is SearchEmpty) return _noResultsState();
-          if (state is SearchError) {
-            return Center(
-              child: Text(
-                state.message,
-                style: const TextStyle(color: AppColors.error),
-              ),
-            );
-          }
-          // SearchInitial — nothing typed yet.
-          return _emptyState();
-        },
+        // Cross-fades between the prompt, spinner and results as the user types.
+        builder: (context, state) => AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _bodyFor(context, state),
+        ),
       ),
     );
   }
 
-  Widget _emptyState() => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search, size: 64, color: AppColors.inactiveGrey),
-            SizedBox(height: 12),
-            Text(
-              'Type a drug name to search',
-              style: TextStyle(color: AppColors.greyText, fontSize: 15),
-            ),
-          ],
+  Widget _bodyFor(BuildContext context, SearchState state) {
+    if (state is SearchLoading) {
+      return const Center(
+        key: ValueKey('loading'),
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      );
+    }
+    if (state is SearchSuccess) return _resultsList(context, state);
+    if (state is SearchEmpty) return _noResultsState();
+    if (state is SearchError) {
+      return Center(
+        key: const ValueKey('error'),
+        child: Text(
+          state.message,
+          style: const TextStyle(color: AppColors.error),
         ),
       );
+    }
+    // SearchInitial — nothing typed yet.
+    return _emptyState();
+  }
+
+  Widget _emptyState() => const Center(
+    key: ValueKey('initial'),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.search, size: 64, color: AppColors.inactiveGrey),
+        SizedBox(height: 12),
+        Text(
+          'Type a drug name to search',
+          style: TextStyle(color: AppColors.greyText, fontSize: 15),
+        ),
+      ],
+    ),
+  );
 
   Widget _noResultsState() => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, size: 64, color: AppColors.inactiveGrey),
-            SizedBox(height: 12),
-            Text(
-              'No medicines found',
-              style: TextStyle(color: AppColors.greyText, fontSize: 15),
-            ),
-          ],
+    key: ValueKey('none'),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.search_off, size: 64, color: AppColors.inactiveGrey),
+        SizedBox(height: 12),
+        Text(
+          'No medicines found',
+          style: TextStyle(color: AppColors.greyText, fontSize: 15),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _resultsList(BuildContext context, SearchSuccess state) =>
       ListView.builder(
+        key: const ValueKey('results'),
         padding: const EdgeInsets.all(16),
         itemCount: state.results.length + 1,
         itemBuilder: (context, i) {
@@ -117,8 +128,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
             return TextButton.icon(
               onPressed: () =>
                   Navigator.pushNamed(context, AppRoutes.drugNotFound),
-              icon: const Icon(Icons.info_outline,
-                  color: AppColors.primaryGreen),
+              icon: const Icon(Icons.info_outline, color: AppColors.primaryGreen),
               label: const Text(
                 "Can't find your medicine?",
                 style: TextStyle(color: AppColors.primaryGreen),
@@ -129,7 +139,8 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12),
               leading: Container(
@@ -153,8 +164,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
               ),
               subtitle: Text(
                 r.pharmacyName,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.greyText),
+                style: const TextStyle(fontSize: 13, color: AppColors.greyText),
               ),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -170,7 +180,9 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: r.inStock
                           ? AppColors.lightGreen

@@ -18,16 +18,35 @@ class _SplashScreenState extends State<SplashScreen> {
     _navigate();
   }
 
+  /// Decides where a returning user lands. This is what makes the saved user
+  /// type a genuinely restored preference: a pharmacist who closes the app
+  /// reopens straight on the pharmacist dashboard.
   Future<void> _navigate() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    final done = await PreferencesService.isOnboardingDone();
+
+    final bool onboarded = await PreferencesService.isOnboardingDone();
     if (!mounted) return;
-    if (done) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    } else {
+    if (!onboarded) {
       Navigator.pushReplacementNamed(context, AppRoutes.onboarding1);
+      return;
     }
+
+    final bool loggedIn = await PreferencesService.isLoggedIn();
+    if (!mounted) return;
+    if (!loggedIn) {
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      return;
+    }
+
+    final String userType = await PreferencesService.getUserType();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(
+      context,
+      userType == 'pharmacist'
+          ? AppRoutes.homePharmacist
+          : AppRoutes.homePatient,
+    );
   }
 
   @override
@@ -38,37 +57,42 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           children: [
             const Spacer(flex: 3),
-            Container(
-              width: 80,
-              height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.add,
-                color: AppColors.primaryGreen,
-                size: 40,
+            // Shares a tag with the logo on the login screen so the mark flies
+            // across instead of popping.
+            Hero(
+              tag: 'app-logo',
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: AppColors.primaryGreen,
+                  size: 40,
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               AppStrings.appName,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               AppStrings.tagline,
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const Spacer(flex: 4),
-            Text(
+            const Text(
               AppStrings.locationTag,
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
+              style: TextStyle(color: Colors.white54, fontSize: 12),
             ),
             const SizedBox(height: 24),
           ],
