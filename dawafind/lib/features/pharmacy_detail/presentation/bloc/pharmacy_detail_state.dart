@@ -7,8 +7,14 @@ class PharmacyDetailInitial extends PharmacyDetailState {}
 class PharmacyDetailLoading extends PharmacyDetailState {}
 
 class PharmacyDetailReady extends PharmacyDetailState {
-  PharmacyDetailReady({required this.pharmacyId});
-  final String pharmacyId;
+  PharmacyDetailReady({
+    required this.pharmacy,
+    required this.isSaved,
+    this.myRating,
+  });
+  final PharmacyDetailEntity pharmacy;
+  final bool isSaved;
+  final double? myRating;
 }
 
 class PharmacyDetailError extends PharmacyDetailState {

@@ -8,7 +8,7 @@ class AdminLoading extends AdminState {}
 
 class AdminDashboardReady extends AdminState {
   AdminDashboardReady({required this.pendingApprovals});
-  final List<dynamic> pendingApprovals;
+  final List<PharmacyApprovalEntity> pendingApprovals;
 }
 
 class AdminError extends AdminState {
