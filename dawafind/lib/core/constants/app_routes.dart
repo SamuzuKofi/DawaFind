@@ -17,4 +17,5 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String savedPharmacies = '/saved-pharmacies';
   static const String inventory = '/inventory';
+  static const String admin = '/admin';
 }
