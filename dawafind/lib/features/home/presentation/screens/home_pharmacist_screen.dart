@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/services/preferences_service.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../inventory/presentation/bloc/inventory_bloc.dart';
 import '../bloc/home_bloc.dart';
 
 class HomePharmacistScreen extends StatefulWidget {
@@ -14,17 +15,31 @@ class HomePharmacistScreen extends StatefulWidget {
 }
 
 class _HomePharmacistScreenState extends State<HomePharmacistScreen> {
-  // TODO: replace with real counts once the route also provides InventoryBloc.
-  static const _stats = [
-    {'label': 'Total Drugs', 'value': '124', 'icon': Icons.medication},
-    {'label': 'In Stock', 'value': '98', 'icon': Icons.check_circle_outline},
-    {'label': 'Out of Stock', 'value': '26', 'icon': Icons.warning_amber},
-  ];
-
   @override
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(HomeLoaded());
+    // Drives the stock counts in the overview cards.
+    context.read<InventoryBloc>().add(InventoryLoaded());
+  }
+
+  /// The inventory screen builds its own InventoryBloc, so edits made there
+  /// are invisible to this one. Reloading on return keeps the counts honest
+  /// after a drug is added or removed.
+  Future<void> _openInventory() async {
+    await Navigator.pushNamed(context, AppRoutes.inventory);
+    if (!mounted) return;
+    context.read<InventoryBloc>().add(InventoryLoaded());
+  }
+
+  /// Ends the Firebase session as well as the local one. Clearing only the
+  /// saved preferences would leave the previous account signed in underneath,
+  /// so the next user's Firestore writes would run as them.
+  Future<void> _logout() async {
+    context.read<AuthBloc>().add(AuthLogoutRequested());
+    await PreferencesService.clearSession();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (_) => false);
   }
 
   @override
@@ -51,15 +66,13 @@ class _HomePharmacistScreenState extends State<HomePharmacistScreen> {
                   icon: Icons.add_box_outlined,
                   title: 'Add New Drug',
                   subtitle: 'Add a new medicine to your inventory',
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppRoutes.inventory),
+                  onTap: _openInventory,
                 ),
                 _actionCard(
                   icon: Icons.inventory_2_outlined,
                   title: 'Manage Inventory',
                   subtitle: 'Update stock levels and prices',
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppRoutes.inventory),
+                  onTap: _openInventory,
                 ),
                 _actionCard(
                   icon: Icons.person_outline,
@@ -102,48 +115,105 @@ class _HomePharmacistScreenState extends State<HomePharmacistScreen> {
     ),
   );
 
-  Widget _statsRow() => Row(
-    children: _stats
-        .map(
-          (s) => Expanded(
-            child: Card(
-              margin: const EdgeInsets.only(right: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Icon(
-                      s['icon'] as IconData,
-                      color: AppColors.primaryGreen,
-                      size: 24,
+  /// Counts come straight from the pharmacy's own stock documents, so the
+  /// dashboard and the inventory screen can never disagree.
+  Widget _statsRow() => BlocBuilder<InventoryBloc, InventoryState>(
+    builder: (context, state) {
+      if (state is InventoryError) {
+        return Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.error),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    state.message,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.error,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      s['value'] as String,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      final items = state is InventorySuccess ? state.items : null;
+      return Row(
+        children: [
+          _statCard(
+            icon: Icons.medication,
+            label: 'Total Drugs',
+            value: items?.length,
+          ),
+          _statCard(
+            icon: Icons.check_circle_outline,
+            label: 'In Stock',
+            value: items?.where((i) => !i.isOutOfStock).length,
+          ),
+          _statCard(
+            icon: Icons.warning_amber,
+            label: 'Out of Stock',
+            value: items?.where((i) => i.isOutOfStock).length,
+          ),
+        ],
+      );
+    },
+  );
+
+  // A null value means the counts are still loading.
+  Widget _statCard({
+    required IconData icon,
+    required String label,
+    required int? value,
+  }) => Expanded(
+    child: Card(
+      margin: const EdgeInsets.only(right: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.primaryGreen, size: 24),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 26,
+              child: value == null
+                  ? const Center(
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    )
+                  : Text(
+                      '$value',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.darkText,
                       ),
                     ),
-                    Text(
-                      s['label'] as String,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.greyText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          ),
-        )
-        .toList(),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: AppColors.greyText),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 
   Widget _sectionLabel(String label) => Text(
@@ -208,22 +278,10 @@ class _HomePharmacistScreenState extends State<HomePharmacistScreen> {
       ),
       BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
     ],
-    onTap: (i) async {
-      if (i == 1) Navigator.pushNamed(context, AppRoutes.inventory);
+    onTap: (i) {
+      if (i == 1) _openInventory();
       if (i == 2) Navigator.pushNamed(context, AppRoutes.profile);
-      if (i == 3) {
-        // Ends the Firebase session as well as the local one. Clearing only
-        // the saved preferences would leave the previous account signed in
-        // underneath, so the next user's Firestore writes would run as them.
-        context.read<AuthBloc>().add(AuthLogoutRequested());
-        await PreferencesService.clearSession();
-        if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.login,
-          (_) => false,
-        );
-      }
+      if (i == 3) _logout();
     },
   );
 }
