@@ -17,8 +17,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Dispatched once here rather than in build(), which would re-fire on
-    // every rebuild.
     context.read<InventoryBloc>().add(InventoryLoaded());
   }
 
@@ -37,7 +35,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         label: const Text('Add Drug'),
       ),
       body: BlocConsumer<InventoryBloc, InventoryState>(
-        // Failures surface as a snack bar so the user always gets feedback.
         listener: (context, state) {
           if (state is InventoryError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +120,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ),
   );
 
-  // Status is derived from quantity rather than stored, matching the entity.
   Color _statusColor(InventoryItemEntity item) {
     if (item.isOutOfStock) return AppColors.error;
     if (item.isLowStock) return Colors.orange;
@@ -136,83 +132,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return '${item.quantity} in stock';
   }
 
-  // ---------- Create ----------
-
   Future<void> _showAddDialog() async {
-    final formKey = GlobalKey<FormState>();
-    final name = TextEditingController();
-    final dosage = TextEditingController();
-    final form = TextEditingController();
-    final packSize = TextEditingController();
-    final price = TextEditingController();
-    final quantity = TextEditingController();
-
-    final bool? save = await _formDialog(
-      title: 'Add Drug',
-      formKey: formKey,
-      fields: [
-        _field(name, 'Medicine name'),
-        _field(dosage, 'Dosage (e.g. 500mg)'),
-        _field(form, 'Form (e.g. Tablet)'),
-        _field(packSize, 'Pack size (e.g. 10 tablets)'),
-        _field(price, 'Price (${AppStrings.currency})', numeric: true),
-        _field(quantity, 'Quantity', integer: true),
-      ],
+    final InventoryItemDraft? draft = await showDialog<InventoryItemDraft>(
+      context: context,
+      builder: (_) => const _AddDrugDialog(),
     );
-
-    if (save == true && mounted) {
-      context.read<InventoryBloc>().add(
-        InventoryItemAdded(
-          item: InventoryItemDraft(
-            medicineName: name.text.trim(),
-            dosage: dosage.text.trim(),
-            form: form.text.trim(),
-            packSize: packSize.text.trim(),
-            price: double.parse(price.text.trim()),
-            quantity: int.parse(quantity.text.trim()),
-          ),
-        ),
-      );
-    }
-    for (final c in [name, dosage, form, packSize, price, quantity]) {
-      c.dispose();
+    if (draft != null && mounted) {
+      context.read<InventoryBloc>().add(InventoryItemAdded(item: draft));
     }
   }
 
-  // ---------- Update ----------
-
   Future<void> _showEditDialog(InventoryItemEntity item) async {
-    final formKey = GlobalKey<FormState>();
-    final packSize = TextEditingController(text: item.packSize);
-    final price = TextEditingController(text: item.price.toStringAsFixed(0));
-    final quantity = TextEditingController(text: '${item.quantity}');
-
-    final bool? save = await _formDialog(
-      title: 'Edit ${item.medicineName}',
-      formKey: formKey,
-      fields: [
-        _field(packSize, 'Pack size'),
-        _field(price, 'Price (${AppStrings.currency})', numeric: true),
-        _field(quantity, 'Quantity', integer: true),
-      ],
+    final _EditResult? result = await showDialog<_EditResult>(
+      context: context,
+      builder: (_) => _EditDrugDialog(item: item),
     );
-
-    if (save == true && mounted) {
+    if (result != null && mounted) {
       context.read<InventoryBloc>().add(
         InventoryItemUpdated(
           stockId: item.stockId,
-          quantity: int.parse(quantity.text.trim()),
-          price: double.parse(price.text.trim()),
-          packSize: packSize.text.trim(),
+          quantity: result.quantity,
+          price: result.price,
+          packSize: result.packSize,
         ),
       );
     }
-    for (final c in [packSize, price, quantity]) {
-      c.dispose();
-    }
   }
-
-  // ---------- Delete ----------
 
   Future<void> _confirmDelete(InventoryItemEntity item) async {
     final bool? ok = await showDialog<bool>(
@@ -248,28 +193,110 @@ class _InventoryScreenState extends State<InventoryScreen> {
       );
     }
   }
+}
 
-  // ---------- Shared dialog pieces ----------
+// ---------- Result type for edit dialog ----------
 
-  /// One dialog shell reused by add and edit so both look and validate the same.
-  Future<bool?> _formDialog({
-    required String title,
-    required GlobalKey<FormState> formKey,
-    required List<Widget> fields,
-  }) => showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
+class _EditResult {
+  const _EditResult({
+    required this.packSize,
+    required this.price,
+    required this.quantity,
+  });
+  final String packSize;
+  final double price;
+  final int quantity;
+}
+
+// ---------- Add dialog ----------
+
+// Using StatefulWidget + plain TextField instead of Form+TextFormField avoids
+// the Flutter 3.27+ assertion that fires when _FormScope (Form's InheritedWidget)
+// is deactivated before its TextFormField dependents during dialog dismissal.
+class _AddDrugDialog extends StatefulWidget {
+  const _AddDrugDialog();
+
+  @override
+  State<_AddDrugDialog> createState() => _AddDrugDialogState();
+}
+
+class _AddDrugDialogState extends State<_AddDrugDialog> {
+  final _name = TextEditingController();
+  final _dosage = TextEditingController();
+  final _form = TextEditingController();
+  final _packSize = TextEditingController();
+  final _price = TextEditingController();
+  final _qty = TextEditingController();
+
+  final Map<String, String?> _errors = {};
+
+  @override
+  void dispose() {
+    for (final c in [_name, _dosage, _form, _packSize, _price, _qty]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  bool _validate() {
+    final errors = <String, String?>{};
+    if (_name.text.trim().isEmpty) errors['name'] = 'Required';
+    if (_dosage.text.trim().isEmpty) errors['dosage'] = 'Required';
+    if (_form.text.trim().isEmpty) errors['form'] = 'Required';
+    if (_packSize.text.trim().isEmpty) errors['packSize'] = 'Required';
+
+    final priceStr = _price.text.trim();
+    if (priceStr.isEmpty) {
+      errors['price'] = 'Required';
+    } else if (double.tryParse(priceStr) == null) {
+      errors['price'] = 'Enter a number';
+    } else if (double.parse(priceStr) < 0) {
+      errors['price'] = 'Cannot be negative';
+    }
+
+    final qtyStr = _qty.text.trim();
+    if (qtyStr.isEmpty) {
+      errors['qty'] = 'Required';
+    } else if (int.tryParse(qtyStr) == null) {
+      errors['qty'] = 'Enter a whole number';
+    } else if (int.parse(qtyStr) < 0) {
+      errors['qty'] = 'Cannot be negative';
+    }
+
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(errors);
+    });
+    return errors.isEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(title),
-      content: Form(
-        key: formKey,
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: fields),
+      title: const Text('Add Drug'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _field(_name, 'name', 'Medicine name'),
+            _field(_dosage, 'dosage', 'Dosage (e.g. 500mg)'),
+            _field(_form, 'form', 'Form (e.g. Tablet)'),
+            _field(_packSize, 'packSize', 'Pack size (e.g. 10 tablets)'),
+            _field(
+              _price,
+              'price',
+              'Price (${AppStrings.currency})',
+              numeric: true,
+            ),
+            _field(_qty, 'qty', 'Quantity', integer: true),
+          ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(dialogContext, false),
+          onPressed: () => Navigator.pop(context),
           child: const Text(
             'Cancel',
             style: TextStyle(color: AppColors.greyText),
@@ -277,8 +304,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
         TextButton(
           onPressed: () {
-            if (formKey.currentState!.validate()) {
-              Navigator.pop(dialogContext, true);
+            if (_validate()) {
+              Navigator.pop(
+                context,
+                InventoryItemDraft(
+                  medicineName: _name.text.trim(),
+                  dosage: _dosage.text.trim(),
+                  form: _form.text.trim(),
+                  packSize: _packSize.text.trim(),
+                  price: double.parse(_price.text.trim()),
+                  quantity: int.parse(_qty.text.trim()),
+                ),
+              );
             }
           },
           child: const Text(
@@ -287,41 +324,164 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
         ),
       ],
-    ),
-  );
+    );
+  }
 
-  // `integer` fields are parsed with int.parse when the form is submitted,
-  // and int.parse rejects anything with a decimal point. Validating those
-  // with double.tryParse would let "10.5" through the form and then throw,
-  // so whole-number fields are checked with int.tryParse instead.
   Widget _field(
     TextEditingController controller,
+    String key,
     String label, {
     bool numeric = false,
     bool integer = false,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: TextFormField(
+    child: TextField(
       controller: controller,
       keyboardType: numeric || integer
           ? TextInputType.number
           : TextInputType.text,
-      decoration: InputDecoration(labelText: label, isDense: true),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) return 'Required';
-        if (integer) {
-          final parsed = int.tryParse(value.trim());
-          if (parsed == null) return 'Enter a whole number';
-          if (parsed < 0) return 'Cannot be negative';
-          return null;
-        }
-        if (numeric) {
-          final parsed = double.tryParse(value.trim());
-          if (parsed == null) return 'Enter a number';
-          if (parsed < 0) return 'Cannot be negative';
-        }
-        return null;
+      onChanged: (_) {
+        if (_errors.containsKey(key)) setState(() => _errors.remove(key));
       },
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        errorText: _errors[key],
+      ),
+    ),
+  );
+}
+
+// ---------- Edit dialog ----------
+
+class _EditDrugDialog extends StatefulWidget {
+  const _EditDrugDialog({required this.item});
+
+  final InventoryItemEntity item;
+
+  @override
+  State<_EditDrugDialog> createState() => _EditDrugDialogState();
+}
+
+class _EditDrugDialogState extends State<_EditDrugDialog> {
+  late final _packSize =
+      TextEditingController(text: widget.item.packSize);
+  late final _price =
+      TextEditingController(text: widget.item.price.toStringAsFixed(0));
+  late final _qty =
+      TextEditingController(text: '${widget.item.quantity}');
+
+  final Map<String, String?> _errors = {};
+
+  @override
+  void dispose() {
+    _packSize.dispose();
+    _price.dispose();
+    _qty.dispose();
+    super.dispose();
+  }
+
+  bool _validate() {
+    final errors = <String, String?>{};
+    if (_packSize.text.trim().isEmpty) errors['packSize'] = 'Required';
+
+    final priceStr = _price.text.trim();
+    if (priceStr.isEmpty) {
+      errors['price'] = 'Required';
+    } else if (double.tryParse(priceStr) == null) {
+      errors['price'] = 'Enter a number';
+    } else if (double.parse(priceStr) < 0) {
+      errors['price'] = 'Cannot be negative';
+    }
+
+    final qtyStr = _qty.text.trim();
+    if (qtyStr.isEmpty) {
+      errors['qty'] = 'Required';
+    } else if (int.tryParse(qtyStr) == null) {
+      errors['qty'] = 'Enter a whole number';
+    } else if (int.parse(qtyStr) < 0) {
+      errors['qty'] = 'Cannot be negative';
+    }
+
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(errors);
+    });
+    return errors.isEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Edit ${widget.item.medicineName}'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _field(_packSize, 'packSize', 'Pack size'),
+            _field(
+              _price,
+              'price',
+              'Price (${AppStrings.currency})',
+              numeric: true,
+            ),
+            _field(_qty, 'qty', 'Quantity', integer: true),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.greyText),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            if (_validate()) {
+              Navigator.pop(
+                context,
+                _EditResult(
+                  packSize: _packSize.text.trim(),
+                  price: double.parse(_price.text.trim()),
+                  quantity: int.parse(_qty.text.trim()),
+                ),
+              );
+            }
+          },
+          child: const Text(
+            'Save',
+            style: TextStyle(color: AppColors.primaryGreen),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _field(
+    TextEditingController controller,
+    String key,
+    String label, {
+    bool numeric = false,
+    bool integer = false,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextField(
+      controller: controller,
+      keyboardType: numeric || integer
+          ? TextInputType.number
+          : TextInputType.text,
+      onChanged: (_) {
+        if (_errors.containsKey(key)) setState(() => _errors.remove(key));
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        errorText: _errors[key],
+      ),
     ),
   );
 }
