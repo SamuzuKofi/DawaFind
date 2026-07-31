@@ -4,19 +4,35 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../bloc/pharmacy_detail_bloc.dart';
 
-class PharmacyDetailScreen extends StatelessWidget {
+class PharmacyDetailScreen extends StatefulWidget {
   const PharmacyDetailScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // The pharmacyId is passed as a route argument from the search or saved
-    // pharmacies screen. Dispatch the load event immediately.
+  State<PharmacyDetailScreen> createState() => _PharmacyDetailScreenState();
+}
+
+class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
+  // Loading is kicked off once here rather than from build(), which reruns on
+  // every rebuild — a rotation or theme change would otherwise refetch the
+  // whole pharmacy.
+  bool _requested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_requested) return;
+    _requested = true;
+
+    // Passed as a route argument by whichever screen opened this one.
     final pharmacyId =
         ModalRoute.of(context)?.settings.arguments as String? ?? '';
-    context
-        .read<PharmacyDetailBloc>()
-        .add(PharmacyDetailRequested(pharmacyId: pharmacyId));
+    context.read<PharmacyDetailBloc>().add(
+      PharmacyDetailRequested(pharmacyId: pharmacyId),
+    );
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: BlocBuilder<PharmacyDetailBloc, PharmacyDetailState>(
@@ -29,9 +45,13 @@ class PharmacyDetailScreen extends StatelessWidget {
           }
           if (state is PharmacyDetailError) {
             return Center(
-              child: Text(
-                state.message,
-                style: const TextStyle(color: AppColors.error),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  state.message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.error),
+                ),
               ),
             );
           }
