@@ -57,7 +57,11 @@ service cloud.firestore {
     match /pharmacies/{pharmacyId} {
       allow read: if true;
 
-      allow create: if signedIn();
+      // Listings are seeded by an admin in the Console, never self-serve:
+      // a client-created pharmacy would be an unvetted listing, and paired
+      // with a staff record it was the second half of the self-approval
+      // path the pharmacyStaff block closes.
+      allow create: if false;
 
       allow update: if (isStaffOf(pharmacyId) && !changedKeys().hasAny(['status', 'isVisible']))
         || (signedIn()
@@ -111,16 +115,23 @@ service cloud.firestore {
     // ---------- Pharmacy staff ----------
     // Private to the staff member. Nothing in the patient app reads this,
     // and no staff member needs to see another's account record.
-    // pharmacyId is immutable after creation so a staff account cannot
-    // reassign itself to another pharmacy and gain write access to its stock.
+    //
+    // Read-only from the client, because this document IS the permission:
+    // isStaff()/isStaffOf() above test only for its existence, so a client
+    // able to create it could name any pharmacyId and hand itself write
+    // access to that pharmacy's stock and details. Restricting create to
+    // one's own uid did not prevent that — the uid is the attacker's own,
+    // and the pharmacyId is chosen at create time before the immutability
+    // check on update can apply.
+    //
+    // Promotion to staff is therefore an admin action performed in the
+    // Firebase Console, which bypasses these rules. The app only reads
+    // this collection (to derive the signed-in role and to look up which
+    // pharmacy an inventory write belongs to), so nothing breaks.
 
     match /pharmacyStaff/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update: if signedIn()
-        && request.auth.uid == uid
-        && request.resource.data.pharmacyId == resource.data.pharmacyId;
-      allow delete: if false;
+      allow write: if false;
     }
 
     // ---------- Admins ----------
