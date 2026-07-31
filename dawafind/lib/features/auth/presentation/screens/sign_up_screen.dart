@@ -67,9 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     Navigator.pushNamedAndRemoveUntil(
       context,
-      grantedRole == 'pharmacist'
-          ? AppRoutes.homePharmacist
-          : AppRoutes.homePatient,
+      AppRoutes.homeFor(grantedRole),
       (_) => false,
     );
   }

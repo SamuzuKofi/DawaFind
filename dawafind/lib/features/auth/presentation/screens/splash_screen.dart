@@ -41,12 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final String userType = await PreferencesService.getUserType();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(
-      context,
-      userType == 'pharmacist'
-          ? AppRoutes.homePharmacist
-          : AppRoutes.homePatient,
-    );
+    Navigator.pushReplacementNamed(context, AppRoutes.homeFor(userType));
   }
 
   @override
