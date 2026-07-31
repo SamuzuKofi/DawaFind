@@ -4,6 +4,14 @@ import '../entities/pharmacy_summary_entity.dart';
 abstract class PharmacyRepository {
   Future<PharmacyDetailEntity> getPharmacyById(String pharmacyId);
 
+  /// Approved pharmacies for the home screen's discovery list. Sorted by
+  /// distance when the caller knows where the user is, by name otherwise.
+  Future<List<PharmacySummaryEntity>> getNearbyPharmacies({
+    double? userLatitude,
+    double? userLongitude,
+    int limit = 10,
+  });
+
   Future<bool> isPharmacySaved(String pharmacyId);
 
   Future<void> savePharmacy(String pharmacyId);

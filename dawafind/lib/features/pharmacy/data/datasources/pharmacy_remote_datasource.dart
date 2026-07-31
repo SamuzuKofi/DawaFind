@@ -115,6 +115,35 @@ class PharmacyRemoteDataSource {
     await _savedPharmacyDoc(uid, pharmacyId).delete();
   }
 
+  Future<List<PharmacySummaryEntity>> getNearbyPharmacies({
+    double? userLatitude,
+    double? userLongitude,
+    int limit = 10,
+  }) async {
+    // Only approved listings are public; pending and rejected ones stay
+    // hidden from patients until an admin acts on them.
+    final snapshot = await _firestore
+        .collection(FirestorePaths.pharmacies)
+        .where('status', isEqualTo: PharmacyStatus.approved.name)
+        .get();
+
+    final pharmacies = snapshot.docs
+        .map(PharmacyModel.fromFirestore)
+        .map(
+          (pharmacy) => _toSummary(pharmacy, userLatitude, userLongitude),
+        )
+        .toList();
+
+    final locationKnown = userLatitude != null && userLongitude != null;
+    pharmacies.sort(
+      (a, b) => locationKnown
+          ? (a.distanceKm ?? 0).compareTo(b.distanceKm ?? 0)
+          : a.name.compareTo(b.name),
+    );
+
+    return pharmacies.take(limit).toList();
+  }
+
   Future<List<PharmacySummaryEntity>> getSavedPharmacies({
     double? userLatitude,
     double? userLongitude,
@@ -148,22 +177,7 @@ class PharmacyRemoteDataSource {
         .map(PharmacyModel.fromFirestore)
         .where((pharmacy) => pharmacy.status == PharmacyStatus.approved)
         .map(
-          (pharmacy) => PharmacySummaryEntity(
-            pharmacyId: pharmacy.pharmacyId,
-            name: pharmacy.name,
-            address: pharmacy.address,
-            latitude: pharmacy.latitude,
-            longitude: pharmacy.longitude,
-            averageRating: pharmacy.averageRating,
-            distanceKm: (userLatitude != null && userLongitude != null)
-                ? GeoUtils.distanceKm(
-                    userLatitude,
-                    userLongitude,
-                    pharmacy.latitude,
-                    pharmacy.longitude,
-                  )
-                : null,
-          ),
+          (pharmacy) => _toSummary(pharmacy, userLatitude, userLongitude),
         )
         .toList();
   }
@@ -258,6 +272,29 @@ class PharmacyRemoteDataSource {
       });
     });
   }
+
+  // Distance is only meaningful once the caller knows where the user is, so
+  // it stays null rather than defaulting to a misleading zero.
+  PharmacySummaryEntity _toSummary(
+    PharmacyModel pharmacy,
+    double? userLatitude,
+    double? userLongitude,
+  ) => PharmacySummaryEntity(
+    pharmacyId: pharmacy.pharmacyId,
+    name: pharmacy.name,
+    address: pharmacy.address,
+    latitude: pharmacy.latitude,
+    longitude: pharmacy.longitude,
+    averageRating: pharmacy.averageRating,
+    distanceKm: (userLatitude != null && userLongitude != null)
+        ? GeoUtils.distanceKm(
+            userLatitude,
+            userLongitude,
+            pharmacy.latitude,
+            pharmacy.longitude,
+          )
+        : null,
+  );
 
   DocumentReference<Map<String, dynamic>> _ratingDoc(
     String pharmacyId,

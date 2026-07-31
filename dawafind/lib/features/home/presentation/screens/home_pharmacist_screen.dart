@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/services/preferences_service.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/home_bloc.dart';
 
 class HomePharmacistScreen extends StatefulWidget {
@@ -211,7 +212,10 @@ class _HomePharmacistScreenState extends State<HomePharmacistScreen> {
       if (i == 1) Navigator.pushNamed(context, AppRoutes.inventory);
       if (i == 2) Navigator.pushNamed(context, AppRoutes.profile);
       if (i == 3) {
-        // Clear the session so a restart does not land back on the dashboard.
+        // Ends the Firebase session as well as the local one. Clearing only
+        // the saved preferences would leave the previous account signed in
+        // underneath, so the next user's Firestore writes would run as them.
+        context.read<AuthBloc>().add(AuthLogoutRequested());
         await PreferencesService.clearSession();
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(
