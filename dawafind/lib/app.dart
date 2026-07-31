@@ -51,22 +51,26 @@ class DawaFindApp extends StatelessWidget {
     );
   }
 
+  @visibleForTesting
+  static Route<dynamic> debugGenerateRoute(RouteSettings settings) =>
+      _generateRoute(settings);
+
   static Route<dynamic> _generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.splash:
-        return _page(const SplashScreen());
+        return _page(const SplashScreen(), settings);
 
       case AppRoutes.onboarding1:
-        return _page(const Onboarding1Screen());
+        return _page(const Onboarding1Screen(), settings);
 
       case AppRoutes.onboarding2:
-        return _page(const Onboarding2Screen());
+        return _page(const Onboarding2Screen(), settings);
 
       case AppRoutes.login:
-        return _page(const LoginScreen());
+        return _page(const LoginScreen(), settings);
 
       case AppRoutes.signup:
-        return _page(const SignUpScreen());
+        return _page(const SignUpScreen(), settings);
 
       case AppRoutes.homePatient:
         return _page(
@@ -74,14 +78,20 @@ class DawaFindApp extends StatelessWidget {
             create: (_) => HomeBloc(),
             child: const HomePatientScreen(),
           ),
+          settings,
         );
 
       case AppRoutes.homePharmacist:
+        // InventoryBloc rides along so the dashboard can count real stock.
         return _page(
-          BlocProvider(
-            create: (_) => HomeBloc(),
+          MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => HomeBloc()),
+              BlocProvider(create: (_) => InventoryBloc()),
+            ],
             child: const HomePharmacistScreen(),
           ),
+          settings,
         );
 
       case AppRoutes.search:
@@ -90,6 +100,7 @@ class DawaFindApp extends StatelessWidget {
             create: (_) => SearchBloc(),
             child: const MedicineSearchScreen(),
           ),
+          settings,
         );
 
       case AppRoutes.inventory:
@@ -98,11 +109,13 @@ class DawaFindApp extends StatelessWidget {
             create: (_) => InventoryBloc(),
             child: const InventoryScreen(),
           ),
+          settings,
         );
 
       case AppRoutes.admin:
         return _page(
           BlocProvider(create: (_) => AdminBloc(), child: const AdminScreen()),
+          settings,
         );
 
       case AppRoutes.pharmacyDetail:
@@ -111,13 +124,14 @@ class DawaFindApp extends StatelessWidget {
             create: (_) => PharmacyDetailBloc(),
             child: const PharmacyDetailScreen(),
           ),
+          settings,
         );
 
       case AppRoutes.mapView:
-        return _page(const MapViewScreen());
+        return _page(const MapViewScreen(), settings);
 
       case AppRoutes.drugNotFound:
-        return _page(const DrugNotFoundScreen());
+        return _page(const DrugNotFoundScreen(), settings);
 
       case AppRoutes.profile:
         return _page(
@@ -125,6 +139,7 @@ class DawaFindApp extends StatelessWidget {
             create: (_) => ProfileBloc(),
             child: const ProfileScreen(),
           ),
+          settings,
         );
 
       case AppRoutes.savedPharmacies:
@@ -133,13 +148,17 @@ class DawaFindApp extends StatelessWidget {
             create: (_) => SavedPharmaciesBloc(),
             child: const SavedPharmaciesScreen(),
           ),
+          settings,
         );
 
       default:
-        return _page(const SplashScreen());
+        return _page(const SplashScreen(), settings);
     }
   }
 
-  static MaterialPageRoute<void> _page(Widget child) =>
-      MaterialPageRoute(builder: (_) => child);
+  // Forwarding `settings` is what carries Navigator.pushNamed's `arguments`
+  // through to the screen. Without it ModalRoute.of(context).settings is
+  // empty and every argument a screen expects arrives null.
+  static MaterialPageRoute<void> _page(Widget child, RouteSettings settings) =>
+      MaterialPageRoute(builder: (_) => child, settings: settings);
 }
