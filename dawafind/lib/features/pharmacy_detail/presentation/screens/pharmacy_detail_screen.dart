@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../bloc/pharmacy_detail_bloc.dart';
 
 class PharmacyDetailScreen extends StatefulWidget {
@@ -298,7 +299,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                 ),
                 trailing: Text(
                   d.inStock
-                      ? 'RWF ${d.price.toStringAsFixed(0)}'
+                      ? '${AppStrings.currency} ${d.price.toStringAsFixed(0)}'
                       : 'Out of Stock',
                   style: TextStyle(
                     color: d.inStock ? AppColors.primaryGreen : AppColors.error,
