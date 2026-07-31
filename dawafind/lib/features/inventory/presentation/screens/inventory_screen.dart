@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../domain/entities/inventory_item_entity.dart';
 import '../bloc/inventory_bloc.dart';
 
@@ -101,7 +102,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${item.form} · ${item.packSize} · RWF ${item.price.toStringAsFixed(0)}',
+            '${item.form} · ${item.packSize} · ${AppStrings.currency} ${item.price.toStringAsFixed(0)}',
             style: const TextStyle(fontSize: 13),
           ),
           Text(
@@ -154,8 +155,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _field(dosage, 'Dosage (e.g. 500mg)'),
         _field(form, 'Form (e.g. Tablet)'),
         _field(packSize, 'Pack size (e.g. 10 tablets)'),
-        _field(price, 'Price (RWF)', numeric: true),
-        _field(quantity, 'Quantity', numeric: true),
+        _field(price, 'Price (${AppStrings.currency})', numeric: true),
+        _field(quantity, 'Quantity', integer: true),
       ],
     );
 
@@ -167,8 +168,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
             dosage: dosage.text.trim(),
             form: form.text.trim(),
             packSize: packSize.text.trim(),
-            price: double.parse(price.text),
-            quantity: int.parse(quantity.text),
+            price: double.parse(price.text.trim()),
+            quantity: int.parse(quantity.text.trim()),
           ),
         ),
       );
@@ -191,8 +192,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       formKey: formKey,
       fields: [
         _field(packSize, 'Pack size'),
-        _field(price, 'Price (RWF)', numeric: true),
-        _field(quantity, 'Quantity', numeric: true),
+        _field(price, 'Price (${AppStrings.currency})', numeric: true),
+        _field(quantity, 'Quantity', integer: true),
       ],
     );
 
@@ -200,8 +201,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context.read<InventoryBloc>().add(
         InventoryItemUpdated(
           stockId: item.stockId,
-          quantity: int.parse(quantity.text),
-          price: double.parse(price.text),
+          quantity: int.parse(quantity.text.trim()),
+          price: double.parse(price.text.trim()),
           packSize: packSize.text.trim(),
         ),
       );
@@ -289,20 +290,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ),
   );
 
+  // `integer` fields are parsed with int.parse when the form is submitted,
+  // and int.parse rejects anything with a decimal point. Validating those
+  // with double.tryParse would let "10.5" through the form and then throw,
+  // so whole-number fields are checked with int.tryParse instead.
   Widget _field(
     TextEditingController controller,
     String label, {
     bool numeric = false,
+    bool integer = false,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextFormField(
       controller: controller,
-      keyboardType: numeric ? TextInputType.number : TextInputType.text,
+      keyboardType: numeric || integer
+          ? TextInputType.number
+          : TextInputType.text,
       decoration: InputDecoration(labelText: label, isDense: true),
       validator: (value) {
         if (value == null || value.trim().isEmpty) return 'Required';
-        if (numeric && double.tryParse(value) == null) return 'Enter a number';
-        if (numeric && double.parse(value) < 0) return 'Cannot be negative';
+        if (integer) {
+          final parsed = int.tryParse(value.trim());
+          if (parsed == null) return 'Enter a whole number';
+          if (parsed < 0) return 'Cannot be negative';
+          return null;
+        }
+        if (numeric) {
+          final parsed = double.tryParse(value.trim());
+          if (parsed == null) return 'Enter a number';
+          if (parsed < 0) return 'Cannot be negative';
+        }
         return null;
       },
     ),
