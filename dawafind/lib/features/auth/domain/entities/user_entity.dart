@@ -16,7 +16,7 @@ class UserEntity extends Equatable {
   final String uid;
   final String fullName;
   final String email;
-  final String role; // 'patient' | 'pharmacist'
+  final String role; // 'patient' | 'pharmacist' | 'admin'
   final String? pharmacyId; // set only when role == 'pharmacist'
 
   @override

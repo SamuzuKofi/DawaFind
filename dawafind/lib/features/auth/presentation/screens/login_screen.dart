@@ -20,8 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  // Tracks which button was tapped so only that one shows a spinner.
-  String? _pendingRole;
 
   @override
   void dispose() {
@@ -30,9 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit(String role) {
+  void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    _pendingRole = role;
     context.read<AuthBloc>().add(
       AuthLoginRequested(
         phone: _phoneController.text.trim(),
@@ -47,11 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     await PreferencesService.saveUserType(role);
     await PreferencesService.setLoggedIn(true);
     if (!context.mounted) return;
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      role == 'pharmacist' ? AppRoutes.homePharmacist : AppRoutes.homePatient,
-      (_) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.homeFor(role), (_) => false);
   }
 
   @override
@@ -155,6 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // One button, because the account decides the role. There
+                  // used to be separate "Log in as Patient" / "Log in as
+                  // Pharmacist" buttons, but neither changed what happened:
+                  // the role comes back from Firestore, so tapping
+                  // "Pharmacist" on a patient account silently opened the
+                  // patient home.
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -165,44 +164,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(28),
                         ),
                       ),
-                      onPressed: isLoading ? null : () => _submit('patient'),
-                      child: isLoading && _pendingRole == 'patient'
+                      onPressed: isLoading ? null : _submit,
+                      child: isLoading
                           ? const CircularProgressIndicator(
                               color: AppColors.white,
                             )
                           : const Text(
-                              AppStrings.logInAsPatient,
+                              AppStrings.logIn,
                               style: TextStyle(
                                 color: AppColors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: AppColors.primaryGreen,
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      onPressed: isLoading ? null : () => _submit('pharmacist'),
-                      child: isLoading && _pendingRole == 'pharmacist'
-                          ? const CircularProgressIndicator(
-                              color: AppColors.primaryGreen,
-                            )
-                          : const Text(
-                              AppStrings.logInAsPharmacist,
-                              style: TextStyle(
-                                color: AppColors.primaryGreen,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
