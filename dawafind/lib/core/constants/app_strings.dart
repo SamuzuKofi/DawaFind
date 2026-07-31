@@ -25,8 +25,9 @@ class AppStrings {
   static const String phoneNumber = 'Phone Number';
   static const String password = 'Password';
   static const String confirmPassword = 'Confirm Password';
-  static const String logInAsPatient = 'Log in as Patient';
-  static const String logInAsPharmacist = 'Log in as Pharmacist';
+  // One label, not one per role: the account determines the role, so the
+  // login form never asks which one you are.
+  static const String logIn = 'Log In';
   static const String forgotPassword = 'Forgot Password?';
   static const String continueWithGoogle = 'Continue with Google';
 
