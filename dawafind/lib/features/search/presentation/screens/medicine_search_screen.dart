@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../bloc/search_bloc.dart';
 
 class MedicineSearchScreen extends StatefulWidget {
@@ -14,10 +17,35 @@ class MedicineSearchScreen extends StatefulWidget {
 class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
   final _controller = TextEditingController();
 
+  // Without this, every keystroke fired a full search: three Firestore round
+  // trips plus a Search_History write. Typing "paracetamol" cost eleven of
+  // them, logged eleven history entries, and let an earlier query resolve
+  // after a later one and overwrite the results with stale matches.
+  static const _debounce = Duration(milliseconds: 350);
+  Timer? _debounceTimer;
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged(String query) {
+    _debounceTimer?.cancel();
+    final trimmed = query.trim();
+
+    // Clearing is instant: there is nothing to wait for, and leaving stale
+    // results on screen while the timer runs looks broken.
+    if (trimmed.isEmpty) {
+      context.read<SearchBloc>().add(SearchCleared());
+      return;
+    }
+
+    _debounceTimer = Timer(_debounce, () {
+      if (!mounted) return;
+      context.read<SearchBloc>().add(SearchQueryChanged(query: trimmed));
+    });
   }
 
   @override
@@ -36,20 +64,15 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
             hintStyle: TextStyle(color: Colors.white60),
             border: InputBorder.none,
           ),
-          onChanged: (query) {
-            if (query.trim().isEmpty) {
-              context.read<SearchBloc>().add(SearchCleared());
-            } else {
-              context
-                  .read<SearchBloc>()
-                  .add(SearchQueryChanged(query: query.trim()));
-            }
-          },
+          onChanged: _onQueryChanged,
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.clear, color: AppColors.white),
             onPressed: () {
+              // A queued search would otherwise land after the clear and
+              // repopulate the results the user just dismissed.
+              _debounceTimer?.cancel();
               _controller.clear();
               context.read<SearchBloc>().add(SearchCleared());
             },
@@ -171,7 +194,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'RWF ${r.price.toStringAsFixed(0)}',
+                    '${AppStrings.currency} ${r.price.toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryGreen,

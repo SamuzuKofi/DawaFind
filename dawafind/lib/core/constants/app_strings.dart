@@ -30,6 +30,11 @@ class AppStrings {
   static const String forgotPassword = 'Forgot Password?';
   static const String continueWithGoogle = 'Continue with Google';
 
+  // Money
+  // The app covers Bujumbura pharmacies, so prices are Burundian francs
+  // (ISO 4217 BIF), written locally as FBu — not Rwandan francs.
+  static const String currency = 'FBu';
+
   // Home
   static const String searchPlaceholder = 'Search drug name...';
   static const String quickSearch = 'Quick Search';
