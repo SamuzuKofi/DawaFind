@@ -4,13 +4,24 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../bloc/saved_pharmacies_bloc.dart';
 
-class SavedPharmaciesScreen extends StatelessWidget {
+class SavedPharmaciesScreen extends StatefulWidget {
   const SavedPharmaciesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    context.read<SavedPharmaciesBloc>().add(SavedPharmaciesLoaded());
+  State<SavedPharmaciesScreen> createState() => _SavedPharmaciesScreenState();
+}
 
+class _SavedPharmaciesScreenState extends State<SavedPharmaciesScreen> {
+  // Loaded once here rather than from build(), which reruns on every rebuild
+  // and would refetch the list on each rotation or theme change.
+  @override
+  void initState() {
+    super.initState();
+    context.read<SavedPharmaciesBloc>().add(SavedPharmaciesLoaded());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
