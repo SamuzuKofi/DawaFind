@@ -3,6 +3,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
+import '../../data/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -13,7 +14,20 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,16 +57,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _field(
                 label: AppStrings.fullName,
                 icon: Icons.person_outline,
+                controller: _fullNameController,
                 validator: Validators.required,
               ),
               _field(
-                label: AppStrings.phoneNumber,
-                icon: Icons.phone_outlined,
-                validator: Validators.phone,
+                label: AppStrings.email,
+                icon: Icons.email_outlined,
+                controller: _emailController,
+                validator: Validators.email,
               ),
               _field(
                 label: AppStrings.password,
                 icon: Icons.lock_outline,
+                controller: _passwordController,
                 obscure: _obscurePassword,
                 validator: Validators.password,
                 suffix: IconButton(
@@ -68,8 +85,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _field(
                 label: AppStrings.confirmPassword,
                 icon: Icons.lock_outline,
+                controller: _confirmPasswordController,
                 obscure: true,
-                validator: Validators.required,
+                validator: _confirmPasswordValidator,
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -82,9 +100,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      Navigator.pushNamed(context, AppRoutes.homePatient);
+                      try {
+                        await AuthService().signUp(
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text.trim(),
+                          fullName: _fullNameController.text.trim(),
+                        );
+                        if (!context.mounted) return;
+                        Navigator.pushNamed(context, AppRoutes.homePatient);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
                     }
                   },
                   child: Text(
@@ -115,15 +146,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  String? _confirmPasswordValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'This field is required';
+    }
+    if (value.trim() != _passwordController.text.trim()) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
   Widget _field({
     required String label,
     required IconData icon,
     required String? Function(String?) validator,
+    TextEditingController? controller,
     bool obscure = false,
     Widget? suffix,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
     child: TextFormField(
+      controller: controller,
       obscureText: obscure,
       validator: validator,
       decoration: InputDecoration(

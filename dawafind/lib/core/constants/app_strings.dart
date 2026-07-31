@@ -21,6 +21,7 @@ class AppStrings {
   static const String createAccount = 'Create Account';
   static const String welcomeBack = 'Welcome Back';
   static const String fullName = 'Full Name';
+  static const String email = 'Email';
   static const String phoneNumber = 'Phone Number';
   static const String password = 'Password';
   static const String confirmPassword = 'Confirm Password';

@@ -4,6 +4,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/services/preferences_service.dart';
+import '../../data/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +15,16 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +68,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
               _field(
-                label: AppStrings.phoneNumber,
-                icon: Icons.phone_outlined,
-                validator: Validators.phone,
+                label: AppStrings.email,
+                icon: Icons.email_outlined,
+                controller: _emailController,
+                validator: Validators.email,
               ),
               _field(
                 label: AppStrings.password,
                 icon: Icons.lock_outline,
+                controller: _passwordController,
                 obscure: _obscurePassword,
                 validator: Validators.password,
                 suffix: IconButton(
@@ -103,9 +115,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      await PreferencesService.saveUserType('patient');
-                      if (!context.mounted) return;
-                      Navigator.pushNamed(context, AppRoutes.homePatient);
+                      try {
+                        await AuthService().logIn(
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text.trim(),
+                        );
+                        await PreferencesService.saveUserType('patient');
+                        if (!context.mounted) return;
+                        Navigator.pushNamed(context, AppRoutes.homePatient);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
                     }
                   },
                   child: Text(
@@ -134,9 +157,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      await PreferencesService.saveUserType('pharmacist');
-                      if (!context.mounted) return;
-                      Navigator.pushNamed(context, AppRoutes.homePharmacist);
+                      try {
+                        await AuthService().logIn(
+                          email: _emailController.text.trim(),
+                          password: _passwordController.text.trim(),
+                        );
+                        await PreferencesService.saveUserType('pharmacist');
+                        if (!context.mounted) return;
+                        Navigator.pushNamed(context, AppRoutes.homePharmacist);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
                     }
                   },
                   child: Text(
@@ -206,11 +240,13 @@ class _LoginScreenState extends State<LoginScreen> {
     required String label,
     required IconData icon,
     required String? Function(String?) validator,
+    TextEditingController? controller,
     bool obscure = false,
     Widget? suffix,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
     child: TextFormField(
+      controller: controller,
       obscureText: obscure,
       validator: validator,
       decoration: InputDecoration(
