@@ -36,6 +36,10 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
       await _reload(emit);
     } on AppException catch (e) {
       emit(AdminError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(AdminError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -48,6 +52,10 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
       await _reload(emit);
     } on AppException catch (e) {
       emit(AdminError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(AdminError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -57,6 +65,10 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
       emit(AdminDashboardReady(pendingApprovals: pendingApprovals));
     } on AppException catch (e) {
       emit(AdminError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(AdminError(message: 'Something went wrong. Please try again.'));
     }
   }
 }

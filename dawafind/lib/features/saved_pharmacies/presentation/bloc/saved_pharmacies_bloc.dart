@@ -36,6 +36,10 @@ class SavedPharmaciesBloc
       await _reload(emit);
     } on AppException catch (e) {
       emit(SavedPharmaciesError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(SavedPharmaciesError(message: 'Could not load saved pharmacies.'));
     }
   }
 
@@ -45,6 +49,10 @@ class SavedPharmaciesBloc
       emit(SavedPharmaciesReady(pharmacies: pharmacies));
     } on AppException catch (e) {
       emit(SavedPharmaciesError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(SavedPharmaciesError(message: 'Could not load saved pharmacies.'));
     }
   }
 }

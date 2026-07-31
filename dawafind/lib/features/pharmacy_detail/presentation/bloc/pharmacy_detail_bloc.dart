@@ -26,6 +26,17 @@ class PharmacyDetailBloc
     Emitter<PharmacyDetailState> emit,
   ) async {
     emit(PharmacyDetailLoading());
+    // An empty id means the screen was opened without its route argument.
+    // Firestore rejects an empty document path, so this is caught here to
+    // report the real problem instead of a confusing backend error.
+    if (event.pharmacyId.isEmpty) {
+      emit(
+        PharmacyDetailError(
+          message: 'No pharmacy was selected. Please pick one from the list.',
+        ),
+      );
+      return;
+    }
     await _load(event.pharmacyId, emit);
   }
 
@@ -50,6 +61,10 @@ class PharmacyDetailBloc
       );
     } on AppException catch (e) {
       emit(PharmacyDetailError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(PharmacyDetailError(message: 'Could not load this pharmacy.'));
     }
   }
 
@@ -62,6 +77,10 @@ class PharmacyDetailBloc
       await _load(event.pharmacyId, emit);
     } on AppException catch (e) {
       emit(PharmacyDetailError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(PharmacyDetailError(message: 'Could not load this pharmacy.'));
     }
   }
 
@@ -74,6 +93,10 @@ class PharmacyDetailBloc
       await _load(event.pharmacyId, emit);
     } on AppException catch (e) {
       emit(PharmacyDetailError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(PharmacyDetailError(message: 'Could not load this pharmacy.'));
     }
   }
 
@@ -94,6 +117,10 @@ class PharmacyDetailBloc
       );
     } on AppException catch (e) {
       emit(PharmacyDetailError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(PharmacyDetailError(message: 'Could not load this pharmacy.'));
     }
   }
 }

@@ -31,6 +31,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthAuthenticated(role: user.role));
     } on AppException catch (e) {
       emit(AuthError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(AuthError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -48,6 +52,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthAuthenticated(role: user.role));
     } on AppException catch (e) {
       emit(AuthError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(AuthError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -55,7 +63,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await _authRepository.signOut();
+    // A failed remote sign-out must never trap the user in a signed-in UI,
+    // so the local session is cleared either way.
+    try {
+      await _authRepository.signOut();
+    } catch (_) {
+      // Ignored on purpose — see above.
+    }
     emit(AuthUnauthenticated());
   }
 }
