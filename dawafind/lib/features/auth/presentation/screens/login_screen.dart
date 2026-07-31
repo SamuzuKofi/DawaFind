@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/services/preferences_service.dart';
+import '../../data/auth_service.dart';
 import '../../../../core/utils/validators.dart';
 import '../bloc/auth_bloc.dart';
 
