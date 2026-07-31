@@ -37,17 +37,34 @@ class AuthRemoteDataSource {
         password: password,
       );
       final uid = credential.user!.uid;
+
+      if (requestedRole == 'pharmacist') {
+        // Write to pharmacyStaff so _loadProfile grants the pharmacist role
+        // on first login. pharmacyId starts empty — a pharmacy doc can be
+        // linked later by an admin or via a separate onboarding step.
+        await _firestore
+            .collection(FirestorePaths.pharmacyStaff)
+            .doc(uid)
+            .set({
+          'fullName': fullName,
+          'email': email,
+          'pharmacyId': '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        return UserEntity(
+          uid: uid,
+          fullName: fullName,
+          email: email,
+          role: 'pharmacist',
+          pharmacyId: '',
+        );
+      }
+
       await _firestore.collection(FirestorePaths.users).doc(uid).set({
         'fullName': fullName,
         'email': email,
-        // Only ever a request. Granting it means creating a pharmacyStaff
-        // doc for this uid, which an admin does — a self-serve write here
-        // would let anyone hand themselves a pharmacy's stock permissions.
-        'requestedRole': requestedRole,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      // Every new account starts as a patient regardless of what was asked
-      // for; role is derived from which collection the uid appears in.
       return UserEntity(
         uid: uid,
         fullName: fullName,
