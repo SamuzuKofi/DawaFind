@@ -3,11 +3,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../pharmacy/domain/entities/pharmacy_summary_entity.dart';
 import '../bloc/home_bloc.dart';
 
-class HomePatientScreen extends StatelessWidget {
+class HomePatientScreen extends StatefulWidget {
   const HomePatientScreen({super.key});
 
+  @override
+  State<HomePatientScreen> createState() => _HomePatientScreenState();
+}
+
+class _HomePatientScreenState extends State<HomePatientScreen> {
   static const _categories = [
     'Antibiotics',
     'Painkillers',
@@ -15,45 +21,88 @@ class HomePatientScreen extends StatelessWidget {
     'Malaria',
   ];
 
-  static const _pharmacies = [
-    {'name': 'Dawa Pharmacy', 'distance': '0.8 km away', 'open': true},
-    {'name': 'Health Plus Pharmacy', 'distance': '1.2 km away', 'open': true},
-    {'name': 'City Pharma Kigali', 'distance': '2.1 km away', 'open': false},
-  ];
+  // Loaded once here rather than from build(), which reruns on every rebuild
+  // and would refetch on each rotation or theme change.
+  @override
+  void initState() {
+    super.initState();
+    context.read<HomeBloc>().add(HomeLoaded());
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Trigger the data load as soon as the screen is first built.
-    context.read<HomeBloc>().add(HomeLoaded());
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          BlocBuilder<HomeBloc, HomeState>(
-            builder: (context, state) {
-              final greeting = state is HomeReady ? state.userName : '';
-              return _header(context, greeting);
-            },
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _sectionLabel('Quick Search'),
-                const SizedBox(height: 8),
-                _categoryChips(),
-                const SizedBox(height: 20),
-                _sectionRow('Nearby Pharmacies', AppStrings.viewAll),
-                const SizedBox(height: 8),
-                ..._pharmacies.map((p) => _pharmacyCard(context, p)),
-              ],
-            ),
-          ),
-        ],
+      body: BlocBuilder<HomeBloc, HomeState>(
+        builder: (context, state) {
+          final greeting = state is HomeReady ? state.userName : '';
+          return Column(
+            children: [
+              _header(context, greeting),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _sectionLabel('Quick Search'),
+                    const SizedBox(height: 8),
+                    _categoryChips(),
+                    const SizedBox(height: 20),
+                    _sectionRow('Nearby Pharmacies', AppStrings.viewAll),
+                    const SizedBox(height: 8),
+                    ..._nearbyPharmacies(context, state),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _bottomNav(context),
     );
+  }
+
+  List<Widget> _nearbyPharmacies(BuildContext context, HomeState state) {
+    if (state is HomeLoading || state is HomeInitial) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primaryGreen),
+          ),
+        ),
+      ];
+    }
+    if (state is HomeError) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Text(
+              state.message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.error, fontSize: 13),
+            ),
+          ),
+        ),
+      ];
+    }
+    if (state is HomeReady) {
+      if (state.pharmacies.isEmpty) {
+        return const [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'No pharmacies listed yet.',
+                style: TextStyle(color: AppColors.greyText, fontSize: 13),
+              ),
+            ),
+          ),
+        ];
+      }
+      return state.pharmacies.map((p) => _pharmacyCard(context, p)).toList();
+    }
+    return const [];
   }
 
   Widget _header(BuildContext context, String userName) {
@@ -157,7 +206,7 @@ class HomePatientScreen extends StatelessWidget {
         ],
       );
 
-  Widget _pharmacyCard(BuildContext context, Map<String, dynamic> p) => Card(
+  Widget _pharmacyCard(BuildContext context, PharmacySummaryEntity p) => Card(
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 1,
@@ -174,41 +223,49 @@ class HomePatientScreen extends StatelessWidget {
                 const Icon(Icons.local_pharmacy, color: AppColors.primaryGreen),
           ),
           title: Text(
-            p['name'] as String,
+            p.name,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: AppColors.darkText,
             ),
           ),
+          // Distance needs the device location, which the app does not ask
+          // for yet, so the address is the useful thing to show meanwhile.
           subtitle: Text(
-            p['distance'] as String,
+            p.distanceKm != null
+                ? '${p.distanceKm!.toStringAsFixed(1)} km away'
+                : p.address,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 13, color: AppColors.greyText),
           ),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.lightGreen,
-                  borderRadius: BorderRadius.circular(8),
+              if (p.averageRating > 0)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star, size: 14, color: Color(0xFFFFC107)),
+                    const SizedBox(width: 2),
+                    Text(
+                      p.averageRating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.greyText,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  (p['open'] as bool) ? AppStrings.openNow : 'Closed',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: (p['open'] as bool)
-                        ? AppColors.primaryGreen
-                        : AppColors.error,
-                  ),
-                ),
-              ),
               const SizedBox(height: 4),
               const Icon(Icons.chevron_right, color: AppColors.greyText),
             ],
           ),
-          onTap: () => Navigator.pushNamed(context, AppRoutes.pharmacyDetail),
+          onTap: () => Navigator.pushNamed(
+            context,
+            AppRoutes.pharmacyDetail,
+            arguments: p.pharmacyId,
+          ),
         ),
       );
 
