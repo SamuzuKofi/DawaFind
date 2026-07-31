@@ -8,7 +8,7 @@ class InventoryLoading extends InventoryState {}
 
 class InventorySuccess extends InventoryState {
   InventorySuccess({required this.items});
-  final List<dynamic> items;
+  final List<InventoryItemEntity> items;
 }
 
 class InventoryError extends InventoryState {

@@ -1,26 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../bloc/pharmacy_detail_bloc.dart';
 
 class PharmacyDetailScreen extends StatelessWidget {
   const PharmacyDetailScreen({super.key});
 
-  static const _drugs = [
-    {'name': 'Amoxicillin 500mg', 'price': 'RWF 2,300', 'available': true},
-    {'name': 'Paracetamol 500mg', 'price': 'RWF 800', 'available': true},
-    {'name': 'Ibuprofen 400mg', 'price': 'RWF 4,200', 'available': true},
-    {'name': 'Metformin 850mg', 'price': 'RWF 1,600', 'available': false},
-  ];
-
   @override
   Widget build(BuildContext context) {
+    // The pharmacyId is passed as a route argument from the search or saved
+    // pharmacies screen. Dispatch the load event immediately.
+    final pharmacyId =
+        ModalRoute.of(context)?.settings.arguments as String? ?? '';
+    context
+        .read<PharmacyDetailBloc>()
+        .add(PharmacyDetailRequested(pharmacyId: pharmacyId));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: BlocBuilder<PharmacyDetailBloc, PharmacyDetailState>(
+        builder: (context, state) {
+          if (state is PharmacyDetailLoading ||
+              state is PharmacyDetailInitial) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            );
+          }
+          if (state is PharmacyDetailError) {
+            return Center(
+              child: Text(
+                state.message,
+                style: const TextStyle(color: AppColors.error),
+              ),
+            );
+          }
+          if (state is PharmacyDetailReady) {
+            return _buildDetail(context, state);
+          }
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  Widget _buildDetail(BuildContext context, PharmacyDetailReady state) {
+    final pharmacy = state.pharmacy;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         backgroundColor: AppColors.primaryGreen,
-        title: const Text(
-          'Dawa Pharmacy',
-          style: TextStyle(color: AppColors.white),
+        title: Text(
+          pharmacy.name,
+          style: const TextStyle(color: AppColors.white),
         ),
         iconTheme: const IconThemeData(color: AppColors.white),
         elevation: 0,
@@ -45,11 +77,13 @@ class PharmacyDetailScreen extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: 6),
-                      const Text(
-                        'KG 15 Ave, Kiyovu · 0.8 km away',
-                        style: TextStyle(
-                          color: AppColors.greyText,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          pharmacy.address,
+                          style: const TextStyle(
+                            color: AppColors.greyText,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -67,7 +101,7 @@ class PharmacyDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          'Open · 8am-9pm',
+                          'Open',
                           style: TextStyle(
                             color: AppColors.primaryGreen,
                             fontSize: 12,
@@ -75,9 +109,9 @@ class PharmacyDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        '+250 788 123 456',
-                        style: TextStyle(
+                      Text(
+                        pharmacy.phone,
+                        style: const TextStyle(
                           color: AppColors.greyText,
                           fontSize: 13,
                         ),
@@ -89,11 +123,18 @@ class PharmacyDetailScreen extends StatelessWidget {
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
-                      const Text(
-                        '4.7',
-                        style: TextStyle(
+                      Text(
+                        pharmacy.averageRating.toStringAsFixed(1),
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppColors.darkText,
+                        ),
+                      ),
+                      Text(
+                        ' (${pharmacy.ratingCount})',
+                        style: const TextStyle(
+                          color: AppColors.greyText,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -112,7 +153,7 @@ class PharmacyDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          ..._drugs.map(
+          ...pharmacy.stock.map(
             (d) => Card(
               margin: const EdgeInsets.only(bottom: 8),
               shape: RoundedRectangleBorder(
@@ -122,22 +163,18 @@ class PharmacyDetailScreen extends StatelessWidget {
                 leading: Icon(
                   Icons.circle,
                   size: 10,
-                  color: (d['available'] as bool)
-                      ? AppColors.primaryGreen
-                      : AppColors.error,
+                  color: d.inStock ? AppColors.primaryGreen : AppColors.error,
                 ),
                 title: Text(
-                  d['name'] as String,
+                  '${d.medicineName} ${d.dosage}',
                   style: const TextStyle(fontSize: 14),
                 ),
                 trailing: Text(
-                  (d['available'] as bool)
-                      ? d['price'] as String
+                  d.inStock
+                      ? 'RWF ${d.price.toStringAsFixed(0)}'
                       : 'Out of Stock',
                   style: TextStyle(
-                    color: (d['available'] as bool)
-                        ? AppColors.primaryGreen
-                        : AppColors.error,
+                    color: d.inStock ? AppColors.primaryGreen : AppColors.error,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
