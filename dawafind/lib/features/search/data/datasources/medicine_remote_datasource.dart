@@ -60,6 +60,7 @@ class MedicineRemoteDataSource {
     final pharmacyIds = stockDocs
         .map((doc) => doc.data()['pharmacyId'] as String?)
         .whereType<String>()
+        .where((id) => id.isNotEmpty)
         .toSet()
         .toList();
     final pharmacyDocs = await _fetchByDocumentIdWhereIn(
