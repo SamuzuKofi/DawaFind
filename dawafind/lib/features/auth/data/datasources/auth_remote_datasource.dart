@@ -28,6 +28,7 @@ class AuthRemoteDataSource {
     required String fullName,
     required String phone,
     required String password,
+    String requestedRole = 'patient',
   }) async {
     try {
       final email = emailFromPhone(phone);
@@ -39,8 +40,14 @@ class AuthRemoteDataSource {
       await _firestore.collection(FirestorePaths.users).doc(uid).set({
         'fullName': fullName,
         'email': email,
+        // Only ever a request. Granting it means creating a pharmacyStaff
+        // doc for this uid, which an admin does — a self-serve write here
+        // would let anyone hand themselves a pharmacy's stock permissions.
+        'requestedRole': requestedRole,
         'createdAt': FieldValue.serverTimestamp(),
       });
+      // Every new account starts as a patient regardless of what was asked
+      // for; role is derived from which collection the uid appears in.
       return UserEntity(
         uid: uid,
         fullName: fullName,

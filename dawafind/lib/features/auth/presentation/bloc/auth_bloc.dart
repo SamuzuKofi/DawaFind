@@ -48,6 +48,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         fullName: event.fullName,
         phone: event.phone,
         password: event.password,
+        requestedRole: event.requestedRole,
       );
       emit(AuthAuthenticated(role: user.role));
     } on AppException catch (e) {

@@ -40,6 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
+        requestedRole: _requestedRole,
       ),
     );
   }
