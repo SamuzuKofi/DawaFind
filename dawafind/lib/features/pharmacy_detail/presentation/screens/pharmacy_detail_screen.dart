@@ -35,7 +35,26 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: BlocBuilder<PharmacyDetailBloc, PharmacyDetailState>(
+      body: BlocConsumer<PharmacyDetailBloc, PharmacyDetailState>(
+        // Toggling a bookmark only flips an icon, which is easy to miss on a
+        // small screen, so the outcome is confirmed in words too.
+        listenWhen: (previous, current) =>
+            previous is PharmacyDetailReady &&
+            current is PharmacyDetailReady &&
+            previous.isSaved != current.isSaved,
+        listener: (context, state) {
+          final saved = (state as PharmacyDetailReady).isSaved;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  saved ? 'Pharmacy saved.' : 'Removed from saved pharmacies.',
+                ),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+        },
         builder: (context, state) {
           if (state is PharmacyDetailLoading ||
               state is PharmacyDetailInitial) {
@@ -64,6 +83,80 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
     );
   }
 
+  /// Lets the signed-in user leave their own score. Submitting refreshes the
+  /// whole detail view, so the average and count above update in place.
+  Widget _ratingCard(BuildContext context, PharmacyDetailReady state) {
+    final myRating = state.myRating;
+    final pharmacyId = state.pharmacy.pharmacyId;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Your Rating',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkText,
+                  ),
+                ),
+                if (myRating != null)
+                  TextButton(
+                    onPressed: () => context.read<PharmacyDetailBloc>().add(
+                      PharmacyDetailRatingRemoved(pharmacyId: pharmacyId),
+                    ),
+                    child: const Text(
+                      'Clear',
+                      style: TextStyle(color: AppColors.error, fontSize: 13),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: List.generate(5, (i) {
+                final score = i + 1;
+                final filled = myRating != null && score <= myRating;
+                return IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 44,
+                    height: 44,
+                  ),
+                  tooltip: '$score star${score == 1 ? '' : 's'}',
+                  onPressed: () => context.read<PharmacyDetailBloc>().add(
+                    PharmacyDetailRatingSubmitted(
+                      pharmacyId: pharmacyId,
+                      score: score.toDouble(),
+                    ),
+                  ),
+                  icon: Icon(
+                    filled ? Icons.star : Icons.star_border,
+                    color: filled ? Colors.amber : AppColors.inactiveGrey,
+                    size: 30,
+                  ),
+                );
+              }),
+            ),
+            Text(
+              myRating == null
+                  ? 'Tap a star to rate this pharmacy.'
+                  : 'You rated this pharmacy ${myRating.toStringAsFixed(0)} of 5.',
+              style: const TextStyle(color: AppColors.greyText, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDetail(BuildContext context, PharmacyDetailReady state) {
     final pharmacy = state.pharmacy;
     return Scaffold(
@@ -76,6 +169,18 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
         ),
         iconTheme: const IconThemeData(color: AppColors.white),
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: state.isSaved ? 'Remove from saved' : 'Save pharmacy',
+            onPressed: () => context.read<PharmacyDetailBloc>().add(
+              PharmacyDetailSaveToggled(pharmacyId: pharmacy.pharmacyId),
+            ),
+            icon: Icon(
+              state.isSaved ? Icons.bookmark : Icons.bookmark_border,
+              color: AppColors.white,
+            ),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -163,6 +268,8 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          _ratingCard(context, state),
           const SizedBox(height: 16),
           const Text(
             'Available Drugs',
