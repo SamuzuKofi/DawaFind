@@ -6,6 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _RecordingPharmacyRepository implements PharmacyRepository {
   final List<String> lookups = [];
+  final List<String> saved = [];
+  final List<String> unsaved = [];
+  final List<double> submittedRatings = [];
+  final List<String> clearedRatings = [];
 
   @override
   Future<PharmacyDetailEntity> getPharmacyById(String pharmacyId) async {
@@ -31,16 +35,19 @@ class _RecordingPharmacyRepository implements PharmacyRepository {
   Future<double?> getMyRating(String pharmacyId) async => null;
 
   @override
-  Future<void> savePharmacy(String pharmacyId) async {}
+  Future<void> savePharmacy(String pharmacyId) async => saved.add(pharmacyId);
 
   @override
-  Future<void> removePharmacy(String pharmacyId) async {}
+  Future<void> removePharmacy(String pharmacyId) async =>
+      unsaved.add(pharmacyId);
 
   @override
-  Future<void> removeRating(String pharmacyId) async {}
+  Future<void> removeRating(String pharmacyId) async =>
+      clearedRatings.add(pharmacyId);
 
   @override
-  Future<void> submitRating(String pharmacyId, double score) async {}
+  Future<void> submitRating(String pharmacyId, double score) async =>
+      submittedRatings.add(score);
 
   @override
   Future<List<PharmacySummaryEntity>> getSavedPharmacies({
@@ -91,6 +98,54 @@ void main() {
         isEmpty,
         reason: 'an empty id must never reach Firestore',
       );
+      await bloc.close();
+    });
+
+    test('save toggle writes through and flips the saved flag', () async {
+      final repo = _RecordingPharmacyRepository();
+      final bloc = PharmacyDetailBloc(pharmacyRepository: repo);
+
+      bloc.add(PharmacyDetailRequested(pharmacyId: 'p1'));
+      await Future.delayed(const Duration(milliseconds: 50));
+      expect((bloc.state as PharmacyDetailReady).isSaved, isFalse);
+
+      bloc.add(PharmacyDetailSaveToggled(pharmacyId: 'p1'));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(repo.saved, ['p1']);
+      expect((bloc.state as PharmacyDetailReady).isSaved, isTrue);
+
+      // Toggling again takes the other branch, so one control covers both.
+      bloc.add(PharmacyDetailSaveToggled(pharmacyId: 'p1'));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(repo.unsaved, ['p1']);
+      expect((bloc.state as PharmacyDetailReady).isSaved, isFalse);
+      await bloc.close();
+    });
+
+    test('submitting a rating reloads so the average reflects it', () async {
+      final repo = _RecordingPharmacyRepository();
+      final bloc = PharmacyDetailBloc(pharmacyRepository: repo);
+
+      bloc.add(PharmacyDetailRequested(pharmacyId: 'p1'));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      bloc.add(PharmacyDetailRatingSubmitted(pharmacyId: 'p1', score: 4));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(repo.submittedRatings, [4]);
+      expect(
+        repo.lookups,
+        ['p1', 'p1'],
+        reason: 'a new rating changes the aggregate, so the detail is refetched',
+      );
+
+      bloc.add(PharmacyDetailRatingRemoved(pharmacyId: 'p1'));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(repo.clearedRatings, ['p1']);
+      expect(bloc.state, isA<PharmacyDetailReady>());
       await bloc.close();
     });
   });
