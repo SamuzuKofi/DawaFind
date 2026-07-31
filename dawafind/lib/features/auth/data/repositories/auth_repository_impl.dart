@@ -14,11 +14,13 @@ class AuthRepositoryImpl implements AuthRepository {
     required String fullName,
     required String phone,
     required String password,
+    String requestedRole = 'patient',
   }) => guard(
     () => _remoteDataSource.signUp(
       fullName: fullName,
       phone: phone,
       password: password,
+      requestedRole: requestedRole,
     ),
     'Could not create your account. Please try again.',
   );

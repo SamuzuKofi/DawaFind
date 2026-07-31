@@ -25,6 +25,7 @@ class _ExplodingAuthRepository implements AuthRepository {
     required String fullName,
     required String phone,
     required String password,
+    String requestedRole = 'patient',
   }) async => throw UnimplementedError();
 }
 
@@ -51,6 +52,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String fullName,
     required String phone,
     required String password,
+    String requestedRole = 'patient',
   }) async => throw UnimplementedError();
 }
 
