@@ -115,8 +115,10 @@ class InventoryRemoteDataSource {
         .doc(uid)
         .get();
     final pharmacyId = staffDoc.data()?['pharmacyId'] as String?;
-    if (pharmacyId == null) {
-      throw const AppException('No pharmacy is linked to this account.');
+    if (pharmacyId == null || pharmacyId.isEmpty) {
+      throw const AppException(
+        'Your account has no pharmacy linked yet. Contact an admin to set up your pharmacy.',
+      );
     }
     return pharmacyId;
   }
