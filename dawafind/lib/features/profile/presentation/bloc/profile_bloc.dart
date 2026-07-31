@@ -31,6 +31,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       emit(ProfileReady(name: user.fullName, role: user.role));
     } on AppException catch (e) {
       emit(ProfileError(message: e.message));
+    } catch (_) {
+      // Nothing may escape a handler: an uncaught error emits no state at
+      // all, which strands the screen on its loading spinner forever.
+      emit(ProfileError(message: 'Could not load your profile.'));
     }
   }
 
@@ -38,7 +42,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     ProfileLogoutRequested event,
     Emitter<ProfileState> emit,
   ) async {
-    await _authRepository.signOut();
+    // A failed remote sign-out must never trap the user in a signed-in UI,
+    // so the local session is cleared either way.
+    try {
+      await _authRepository.signOut();
+    } catch (_) {
+      // Ignored on purpose — see above.
+    }
     emit(ProfileLoggedOut());
   }
 }

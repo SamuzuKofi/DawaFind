@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/medicine_entity.dart';
 import '../../domain/repositories/medicine_repository.dart';
@@ -16,15 +14,12 @@ class MedicineRepositoryImpl implements MedicineRepository {
     String query, {
     double? userLatitude,
     double? userLongitude,
-  }) async {
-    try {
-      return await _remoteDataSource.search(
-        query,
-        userLatitude: userLatitude,
-        userLongitude: userLongitude,
-      );
-    } on FirebaseException catch (e) {
-      throw AppException(e.message ?? 'Search failed. Please try again.');
-    }
-  }
+  }) => guard(
+    () => _remoteDataSource.search(
+      query,
+      userLatitude: userLatitude,
+      userLongitude: userLongitude,
+    ),
+    'Search failed. Please try again.',
+  );
 }

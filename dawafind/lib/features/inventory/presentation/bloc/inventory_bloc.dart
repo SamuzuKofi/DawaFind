@@ -37,6 +37,10 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       await _reload(emit);
     } on AppException catch (e) {
       emit(InventoryError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(InventoryError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -54,6 +58,10 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       await _reload(emit);
     } on AppException catch (e) {
       emit(InventoryError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(InventoryError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -66,6 +74,10 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       await _reload(emit);
     } on AppException catch (e) {
       emit(InventoryError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(InventoryError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -75,6 +87,10 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       emit(InventorySuccess(items: items));
     } on AppException catch (e) {
       emit(InventoryError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(InventoryError(message: 'Something went wrong. Please try again.'));
     }
   }
 }

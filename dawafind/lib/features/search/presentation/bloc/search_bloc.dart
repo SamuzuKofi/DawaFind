@@ -29,6 +29,10 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       emit(results.isEmpty ? SearchEmpty() : SearchSuccess(results: results));
     } on AppException catch (e) {
       emit(SearchError(message: e.message));
+    } catch (_) {
+      // An uncaught error emits no state at all, which would
+      // strand the screen on its loading spinner forever.
+      emit(SearchError(message: 'Search failed. Please try again.'));
     }
   }
 
